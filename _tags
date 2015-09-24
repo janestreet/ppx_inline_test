@@ -1,0 +1,5 @@
+    <**/*.ml{,i}>: warn(-40)
+# OASIS_START
+# OASIS_STOP
+    <src/*>: linkall
+<as_ppx/ppx.{byte,native}>: predicate(ppx_driver)

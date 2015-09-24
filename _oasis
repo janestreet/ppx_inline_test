@@ -1,0 +1,43 @@
+OASISFormat:      0.3
+OCamlVersion:     >= 4.02.3
+FindlibVersion:   >= 1.3.2
+Name:             ppx_inline_test
+Version:          113.09.00
+Synopsis:         Syntax extension for writing in-line tests in ocaml code
+Authors:          Jane Street Group, LLC <opensource@janestreet.com>
+Copyrights:       (C) 2015 Jane Street Group LLC <opensource@janestreet.com>
+Maintainers:      Jane Street Group, LLC <opensource@janestreet.com>
+License:          Apache-2.0
+LicenseFile:      LICENSE.txt
+Homepage:         https://github.com/janestreet/ppx_inline_test
+Plugins:          StdFiles (0.3), DevFiles (0.3), META (0.3)
+XStdFilesAUTHORS: false
+XStdFilesREADME:  false
+BuildTools:       ocamlbuild
+
+Library ppx_inline_test
+  Path:               src
+  Pack:               false
+  Modules:            Ppx_inline_test
+  BuildDepends:       compiler-libs,
+                      ppx_core,
+                      ppx_driver,
+                      ppx_type_conv,
+                      ppx_tools.metaquot
+
+Library ppx_inline_test_lib
+  Path:               runtime-lib
+  Pack:               true
+  FindlibName:        runtime-lib
+  FindlibParent:      ppx_inline_test
+  Modules:            Runtime
+  Build:              true
+  Install:            true
+
+Executable ppx
+  Path:               as_ppx
+  MainIs:             ppx.ml
+  Build:              true
+  Install:            false
+  CompiledObject:     byte
+  BuildDepends:       ppx_inline_test, ppx_driver

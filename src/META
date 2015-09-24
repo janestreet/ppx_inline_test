@@ -1,0 +1,18 @@
+version = "113.09.00"
+description = "Syntax extension for writing in-line tests in ocaml code"
+requires = "compiler-libs ppx_core ppx_driver ppx_type_conv ppx_inline_test.runtime-lib"
+archive(ppx_driver, byte          ) = "ppx_inline_test.cma"
+archive(ppx_driver, native        ) = "ppx_inline_test.cmxa"
+archive(ppx_driver, native, plugin) = "ppx_inline_test.cmxs"
+exists_if = "ppx_inline_test.cma"
+ppx = "./ppx.byte"
+
+package "runtime-lib" (
+ version = "113.09.00"
+ description = "Runtime library for ppx_inline_test"
+ requires = ""
+ archive(byte          ) = "ppx_inline_test_lib.cma"
+ archive(native        ) = "ppx_inline_test_lib.cmxa"
+ archive(native, plugin) = "ppx_inline_test_lib.cmxs"
+ exists_if = "ppx_inline_test_lib.cma"
+)

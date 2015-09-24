@@ -1,0 +1,34 @@
+File "failures.ml", line 6, characters 6-24: <<false>> is false.
+
+File "failures.ml", line 7, characters 6-29: <<raise Exit>> threw Pervasives.Exit.
+  Raised at file "failures.ml", line 7, characters 25-29
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+
+File "failures.ml", line 9, characters 8-26: <<false>> is false.
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-227: name
+
+File "failures.ml", line 10, characters 8-26: <<false>> is false.
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-227: name
+
+File "failures.ml", line 11, characters 8-31: <<raise Exit>> threw Pervasives.Exit.
+  Raised at file "failures.ml", line 11, characters 27-31
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-227: name
+
+TEST_MODULE threw Pervasives.Exit.
+  Raised at file "failures.ml", line 13, characters 25-29
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+  in TEST_MODULE at file "failures.ml", line 8, characters 6-227: name
+
+TEST_MODULE threw Pervasives.Exit.
+  Raised at file "failures.ml", line 17, characters 23-27
+  Called from file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+  Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+
+FAILED 5 / 11 tests, 2 TEST_MODULES
+code: 2
