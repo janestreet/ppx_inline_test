@@ -1,5 +1,43 @@
     <**/*.ml{,i}>: warn(-40)
 # OASIS_START
+# DO NOT EDIT (digest: 430894678e76f1cbfe3c725f1c9e3a65)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library ppx_inline_test
+"src/ppx_inline_test.cmxs": use_ppx_inline_test
+<src/*.ml{,i,y}>: package(compiler-libs)
+<src/*.ml{,i,y}>: package(ppx_core)
+<src/*.ml{,i,y}>: package(ppx_driver)
+<src/*.ml{,i,y}>: package(ppx_tools.metaquot)
+<src/*.ml{,i,y}>: package(ppx_type_conv)
+# Library ppx_inline_test_lib
+"runtime-lib/ppx_inline_test_lib.cmxs": use_ppx_inline_test_lib
+"runtime-lib/runtime.cmx": for-pack(Ppx_inline_test_lib)
+# Executable ppx
+"as_ppx/ppx.byte": package(compiler-libs)
+"as_ppx/ppx.byte": package(ppx_core)
+"as_ppx/ppx.byte": package(ppx_driver)
+"as_ppx/ppx.byte": package(ppx_tools.metaquot)
+"as_ppx/ppx.byte": package(ppx_type_conv)
+"as_ppx/ppx.byte": use_ppx_inline_test
+<as_ppx/*.ml{,i,y}>: package(compiler-libs)
+<as_ppx/*.ml{,i,y}>: package(ppx_core)
+<as_ppx/*.ml{,i,y}>: package(ppx_driver)
+<as_ppx/*.ml{,i,y}>: package(ppx_tools.metaquot)
+<as_ppx/*.ml{,i,y}>: package(ppx_type_conv)
+<as_ppx/*.ml{,i,y}>: use_ppx_inline_test
 # OASIS_STOP
     <src/*>: linkall
 <as_ppx/ppx.{byte,native}>: predicate(ppx_driver)
