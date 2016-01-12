@@ -1,8 +1,37 @@
+module Test_result = struct
+  type t = Success | Failure | Error
+
+  let to_exit_code = function
+    | Success -> 0
+    | Failure -> 2
+    | Error   -> 1
+  ;;
+
+  let to_string = function
+    | Success -> "success"
+    | Failure -> "failure"
+    | Error   -> "error"
+  ;;
+
+  let combine t1 t2 =
+    match t1, t2 with
+    | Success, Success        -> Success
+    | Error  , _ | _, Error   -> Error
+    | Failure, _ | _, Failure -> Failure
+  ;;
+
+  let combine_all ts = List.fold_left combine Success ts
+
+  let global_t = ref Success
+  let exit () = exit (to_exit_code !global_t)
+  let record t = global_t := combine !global_t t
+end
+
 let parse_argv argv l f msg =
   try
     Arg.parse_argv argv l f msg
   with
-  | Arg.Bad msg -> Printf.eprintf "%s" msg; exit 2
+  | Arg.Bad msg -> Printf.eprintf "%s" msg; exit 1
   | Arg.Help msg -> Printf.printf "%s" msg; exit 0
 ;;
 
@@ -32,6 +61,8 @@ let stop_on_error = ref false
 let log = ref None
 
 let time_sec = ref 0.
+
+let use_color = ref true
 
 let displayed_descr descr filename line start_pos end_pos =
   Printf.sprintf "File %S, line %d, characters %d-%d%s"
@@ -104,6 +135,7 @@ let () =
                       - File \"file.ml\"
                       - File \"file.ml\", line 23
                       - File \"file.ml\", line 23, characters 2-3";
+      "-no-color", Arg.Clear use_color, " Summarize tests using color";
     ]) (fun anon ->
       Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
       exit 1
@@ -272,15 +304,15 @@ let test_module descr def_filename def_line_number start_pos end_pos f =
        even looking for a test) *)
     if Some lib = !dynamic_lib then begin
       incr test_modules_ran;
-      try
-        with_descr (descr ()) f
+      let descr = descr () in
+      try with_descr descr f
       with exn ->
         let backtrace = backtrace_indented ~by:2 in
         incr test_modules_failed;
         let exn_str = Printexc.to_string exn in
         let sep = if String.contains exn_str '\n' then "\n" else " " in
-        eprintf_or_delay ("TES" ^^ "T_MODULE threw%s%s.\n%s%s\n%!") sep exn_str
-          backtrace (string_of_module_descr ())
+        eprintf_or_delay ("TES" ^^ "T_MODULE at %s threw%s%s.\n%s%s\n%!")
+          (String.uncapitalize descr) sep exn_str backtrace (string_of_module_descr ())
     end
   | `Ignore -> ()
   | `Collect r ->
@@ -288,7 +320,7 @@ let test_module descr def_filename def_line_number start_pos end_pos f =
     r := List.rev_append (collect f) !r
 
 let summarize () =
-  begin match !action with
+  match !action with
   | `Ignore ->
     if Sys.argv <> [||] && Filename.basename Sys.argv.(0) = "inline_tests_runner.exe" then
       Printf.eprintf "inline_tests_runner.exe is not supposed to be run by hand, you \n\
@@ -297,49 +329,52 @@ let summarize () =
       Printf.eprintf "You are doing something unexpected with the tests. No tests have \n\
                       been run. You should use the inline_tests_runner script to run \n\
                       tests.\n%!";
-    exit 1
+    Test_result.Error
   | `Run_lib _
-  | `Collect _ -> ()
-  end;
-  begin match !log with
-  | None -> ()
-  | Some ch -> close_out ch
-  end;
-  print_delayed_errors ();
-  match !tests_failed, !test_modules_failed with
-  | 0, 0 -> begin
-    if !show_counts then begin
-      Printf.eprintf "%d tests ran, %d test_modules ran\n%!" !tests_ran !test_modules_ran
-    end;
-    let errors =
-      match !action with
-      | `Run_lib (_, tests) ->
-        let unused_tests =
-          List.filter (fun (_, _, used) -> not !used) tests in
-        begin match unused_tests with
-        | [] -> None
-        | _ :: _ -> Some unused_tests
-        end
-      | `Ignore
-      | `Collect _ -> None in
-    match errors with
-    | Some tests ->
-      Printf.eprintf "Pa_ounit error: the following -only-test flags matched nothing:";
-      List.iter (fun (filename, line_number_opt, _) ->
-        match line_number_opt with
-        | None -> Printf.eprintf " %s" filename
-        | Some line_number -> Printf.eprintf " %s:%d" filename line_number
-      ) tests;
-      Printf.eprintf ".\n%!";
-      exit 1
-    | None ->
-      if !tests_ran = 0 && !strict then begin
-        Printf.eprintf "Pa_ounit error: no tests have been run.\n%!";
-        exit 1
+  | `Collect _ -> begin
+      begin match !log with
+      | None -> ()
+      | Some ch -> close_out ch
       end;
-      exit 0
-  end
-  | count, count_test_modules ->
-    Printf.eprintf "FAILED %d / %d tests%s\n%!" count !tests_ran
-      (if count_test_modules = 0 then "" else Printf.sprintf (", %d TES" ^^ "T_MODULES") count_test_modules);
-    exit 2
+      print_delayed_errors ();
+      match !tests_failed, !test_modules_failed with
+      | 0, 0 -> begin
+          if !show_counts then begin
+            Printf.eprintf "%d tests ran, %d test_modules ran\n%!" !tests_ran !test_modules_ran
+          end;
+          let errors =
+            match !action with
+            | `Run_lib (_, tests) ->
+              let unused_tests =
+                List.filter (fun (_, _, used) -> not !used) tests in
+              begin match unused_tests with
+              | [] -> None
+              | _ :: _ -> Some unused_tests
+              end
+            | `Ignore
+            | `Collect _ -> None in
+          match errors with
+          | Some tests ->
+            Printf.eprintf "Pa_ounit error: the following -only-test flags matched nothing:";
+            List.iter (fun (filename, line_number_opt, _) ->
+              match line_number_opt with
+              | None -> Printf.eprintf " %s" filename
+              | Some line_number -> Printf.eprintf " %s:%d" filename line_number
+            ) tests;
+            Printf.eprintf ".\n%!";
+            Test_result.Error
+          | None ->
+            if !tests_ran = 0 && !strict then begin
+              Printf.eprintf "Pa_ounit error: no tests have been run.\n%!";
+              Test_result.Error
+            end else begin
+              Test_result.Success
+            end
+        end
+      | count, count_test_modules ->
+        Printf.eprintf "FAILED %d / %d tests%s\n%!" count !tests_ran
+          (if count_test_modules = 0 then "" else Printf.sprintf (", %d TES" ^^ "T_MODULES") count_test_modules);
+        Test_result.Failure
+    end
+
+let use_color = !use_color

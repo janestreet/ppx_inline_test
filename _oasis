@@ -1,11 +1,11 @@
-OASISFormat:      0.3
+OASISFormat:      0.4
 OCamlVersion:     >= 4.02.3
 FindlibVersion:   >= 1.3.2
 Name:             ppx_inline_test
-Version:          113.09.00
+Version:          113.24.00
 Synopsis:         Syntax extension for writing in-line tests in ocaml code
 Authors:          Jane Street Group, LLC <opensource@janestreet.com>
-Copyrights:       (C) 2015 Jane Street Group LLC <opensource@janestreet.com>
+Copyrights:       (C) 2015-2016 Jane Street Group LLC <opensource@janestreet.com>
 Maintainers:      Jane Street Group, LLC <opensource@janestreet.com>
 License:          Apache-2.0
 LicenseFile:      LICENSE.txt
@@ -14,30 +14,39 @@ Plugins:          StdFiles (0.3), DevFiles (0.3), META (0.3)
 XStdFilesAUTHORS: false
 XStdFilesREADME:  false
 BuildTools:       ocamlbuild
+FilesAB:          META.ab
+Description:
+  Part of the Jane Street's PPX rewriters collection.
 
 Library ppx_inline_test
-  Path:               src
-  Pack:               false
-  Modules:            Ppx_inline_test
-  BuildDepends:       compiler-libs,
-                      ppx_core,
-                      ppx_driver,
-                      ppx_type_conv,
-                      ppx_tools.metaquot
-
-Library ppx_inline_test_lib
-  Path:               runtime-lib
-  Pack:               true
-  FindlibName:        runtime-lib
-  FindlibParent:      ppx_inline_test
-  Modules:            Runtime
-  Build:              true
-  Install:            true
+  Path:         src
+  Pack:         false
+  Modules:      Ppx_inline_test
+  BuildDepends: ppx_core,
+                ppx_driver,
+                ppx_inline_test_libname,
+                ppx_tools.metaquot
 
 Executable ppx
-  Path:               as_ppx
-  MainIs:             ppx.ml
-  Build:              true
-  Install:            false
-  CompiledObject:     byte
-  BuildDepends:       ppx_inline_test, ppx_driver
+  Path:           as_ppx
+  MainIs:         ppx.ml
+  CompiledObject: best
+  BuildDepends:   ppx_inline_test,
+                  ppx_driver
+
+Library ppx_inline_test_drop
+  Path:         drop
+  Pack:         false
+  Modules:      Ppx_inline_test_drop
+  BuildDepends: ppx_inline_test
+
+Library ppx_inline_test_lib
+  Path:    runtime-lib
+  Pack:    true
+  Modules: Runtime
+
+Library ppx_inline_test_libname
+  Path:         libname
+  Pack:         false
+  Modules:      Ppx_inline_test_libname
+  BuildDepends: ppx_driver

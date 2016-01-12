@@ -1,0 +1,47 @@
+version = "$(pkg_version)"
+description = "Syntax extension for writing in-line tests in ocaml code"
+requires(-ppx_driver) = "ppx_core ppx_driver ppx_inline_test.libname ppx_inline_test.runtime-lib"
+requires(ppx_driver) = "ppx_core ppx_driver ppx_inline_test.libname"
+archive(ppx_driver, byte          ) = "ppx_inline_test.cma"
+archive(ppx_driver, native        ) = "ppx_inline_test.cmxa"
+archive(ppx_driver, native, plugin) = "ppx_inline_test.cmxs"
+exists_if = "ppx_inline_test.cma"
+ppx(-ppx_driver) = "./ppx"
+
+package "drop" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "ppx_inline_test"
+  archive(byte          ) = "ppx_inline_test_drop.cma"
+  archive(native        ) = "ppx_inline_test_drop.cmxa"
+  archive(native, plugin) = "ppx_inline_test_drop.cmxs"
+  exists_if = "ppx_inline_test_drop.cma"
+)
+
+package "libname" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "ppx_driver"
+  archive(byte          ) = "ppx_inline_test_libname.cma"
+  archive(native        ) = "ppx_inline_test_libname.cmxa"
+  archive(native, plugin) = "ppx_inline_test_libname.cmxs"
+  exists_if = "ppx_inline_test_libname.cma"
+
+  package "for_ppx_deriving" (
+    description = "Don't use this directly"
+    error(ppx_driver) = "Cannot use ppx_inline_test.libname.for_ppx_deriving when ppx_driver is set"
+    requires = "ppx_deriving ppx_driver.for_ppx_deriving"
+    exists_if = "ppx_inline_test_libname.cma"
+    ppxopt = "ppx_deriving,./ppx_inline_test_libname.cma"
+  )
+)
+
+package "runtime-lib" (
+  version = "$(pkg_version)"
+  description = "Runtime library for ppx_inline_test"
+  requires = ""
+  archive(byte          ) = "ppx_inline_test_lib.cma"
+  archive(native        ) = "ppx_inline_test_lib.cmxa"
+  archive(native, plugin) = "ppx_inline_test_lib.cmxs"
+  exists_if = "ppx_inline_test_lib.cma"
+)

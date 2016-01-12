@@ -1,4 +1,5 @@
-(* checking that the execution order is right *)
+(* checking that the execution order is right (and that
+   tests do run) *)
 
 let count = ref 0
 let check i =
@@ -32,24 +33,3 @@ let%test_module _ = (module struct
 end)
 
 let () = check 18
-
-(* let f _ = raise Exit
- * let rec g x = let _ = g in f x + 1
- * let rec h x = let _ = h in g x + 1
- * let rec i x = let _ = i in h x + 1
- * TEST_MODULE "a" = struct
- *   TEST_MODULE "b" = struct
- *     TEST = i 0 = 0
- *   end
- * end *)
-
-(* TEST_MODULE "A" = struct
- *   TEST_MODULE "B" = struct
- *     TEST_MODULE "C" = struct
- *       TEST "D" = false
- *     end
- *   end
- * end *)
-(*TEST_MODULE = struct
-  TEST_UNIT = raise Exit
-end*)
