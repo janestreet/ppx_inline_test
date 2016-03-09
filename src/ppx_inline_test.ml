@@ -73,9 +73,10 @@ let descr ~(loc:Location.t) ?(inner_loc=loc) e_opt id_opt =
 
 let apply_to_descr lid ~loc ?inner_loc e_opt id_opt more_arg =
   let descr, filename, line, start_pos, end_pos = descr ~loc ?inner_loc e_opt id_opt in
+  let config = [%expr (module Inline_test_config)] in
   let expr =
     eapply ~loc (evar ~loc ("Ppx_inline_test_lib.Runtime." ^ lid))
-      [ descr; filename; line; start_pos; end_pos; more_arg ]
+      [ config; descr; filename; line; start_pos; end_pos; more_arg ]
   in
   maybe_drop loc expr
 ;;

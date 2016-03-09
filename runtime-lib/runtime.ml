@@ -45,6 +45,7 @@ type filename = string
 type line_number = int
 type start_pos = int
 type end_pos = int
+type config = (module Inline_test_config.S)
 let action : [
 | `Ignore
 | `Run_lib of string * (filename * line_number option * bool ref) list
@@ -217,7 +218,11 @@ let eprintf_or_delay fmt =
     end
   ) fmt
 
-let test (descr : descr) def_filename def_line_number start_pos end_pos f =
+let add_hooks ((module C) : config) f =
+  fun () -> C.pre_test_hook (); f ()
+
+let test config (descr : descr) def_filename def_line_number start_pos end_pos f =
+  let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
   | `Run_lib (lib, l) ->
@@ -280,8 +285,9 @@ let unset_lib static_lib =
   | Some lib ->
     if lib = static_lib then dynamic_lib := None
 
-let test_unit descr def_filename def_line_number start_pos end_pos f =
-  test descr def_filename def_line_number start_pos end_pos (fun () -> time f; true)
+let test_unit config descr def_filename def_line_number start_pos end_pos f =
+  test config descr def_filename def_line_number start_pos end_pos
+    (fun () -> time f; true)
 
 let collect f =
   let prev_action = !action in
@@ -296,7 +302,8 @@ let collect f =
     action := prev_action;
     raise e
 
-let test_module descr def_filename def_line_number start_pos end_pos f =
+let test_module config descr def_filename def_line_number start_pos end_pos f =
+  let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
   | `Run_lib (lib, _) ->

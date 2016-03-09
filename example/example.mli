@@ -1,1 +1,1 @@
-open Core.Std
+open! Core.Std

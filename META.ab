@@ -8,6 +8,16 @@ archive(ppx_driver, native, plugin) = "ppx_inline_test.cmxs"
 exists_if = "ppx_inline_test.cma"
 ppx(-ppx_driver) = "./ppx"
 
+package "config" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = ""
+  archive(byte          ) = "inline_test_config.cma"
+  archive(native        ) = "inline_test_config.cmxa"
+  archive(native, plugin) = "inline_test_config.cmxs"
+  exists_if = "inline_test_config.cma"
+)
+
 package "drop" (
   version = "$(pkg_version)"
   description = ""
@@ -39,7 +49,7 @@ package "libname" (
 package "runtime-lib" (
   version = "$(pkg_version)"
   description = "Runtime library for ppx_inline_test"
-  requires = ""
+  requires = "ppx_inline_test.config"
   archive(byte          ) = "ppx_inline_test_lib.cma"
   archive(native        ) = "ppx_inline_test_lib.cmxa"
   archive(native, plugin) = "ppx_inline_test_lib.cmxs"

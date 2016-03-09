@@ -30,5 +30,5 @@ TEST_MODULE at file "failures.ml", line 14, characters 0-60 threw Pervasives.Exi
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
 
-FAILED 5 / 11 tests, 2 TEST_MODULES
+FAILED 5 / 12 tests, 2 TEST_MODULES
 code: 2

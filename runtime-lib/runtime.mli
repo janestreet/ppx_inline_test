@@ -19,11 +19,12 @@ type filename = string
 type line_number = int
 type start_pos = int
 type end_pos = int
+type config = (module Inline_test_config.S)
 val set_lib : string -> unit
 val unset_lib : string -> unit
-val test : descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> bool) -> unit
-val test_unit : descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
-val test_module : descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
+val test : config -> descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> bool) -> unit
+val test_unit : config -> descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
+val test_module : config -> descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
 val summarize : unit -> Test_result.t
 
 (* These functions are meant to be called by hand, they should be in an other module. *)

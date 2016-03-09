@@ -1,3 +1,8 @@
+## 113.33.00
+
+- Allow to configure hooks for inline tests by redefining a module
+  Inline\_test\_config.
+
 ## 113.24.00
 
 - Support literate-style .ml files that allow ocaml code interleaved with expected output
