@@ -96,18 +96,18 @@ let assert_enabled loc =
 
 let expand_test ~loc ~path:_ id e =
   assert_enabled loc;
-  apply_to_descr "test" ~loc (Some e) id (pexp_fun ~loc "" None (punit ~loc) e)
+  apply_to_descr "test" ~loc (Some e) id (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_unit ~loc ~path:_ id e =
   assert_enabled loc;
-  apply_to_descr "test_unit" ~loc (Some e) id (pexp_fun ~loc "" None (punit ~loc) e)
+  apply_to_descr "test_unit" ~loc (Some e) id (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_module ~loc ~path:_ id m =
   assert_enabled loc;
   apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id
-    (pexp_fun ~loc "" None (punit ~loc)
+    (pexp_fun ~loc Nolabel None (punit ~loc)
        (pexp_letmodule ~loc (Located.mk ~loc "M")
           m
           (eunit ~loc)))
@@ -120,9 +120,8 @@ module E = struct
     pstr ((
       pstr_value nonrecursive (
         value_binding
-          ~pat:(map (pstring __) ~f:(fun f x -> f (Some x)))
+          ~pat:(alt_option (pstring __) ppat_any)
           ~expr ^:: nil)
-      ||| map (pstr_eval expr nil) ~f:(fun f -> f None)
     ) ^:: nil)
 
   let test =
