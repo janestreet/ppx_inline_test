@@ -74,9 +74,18 @@ The full set of tests are run when building the jenga `runtest` alias.
 Building and running the tests outside of jane street
 ----------------------------------------
 
-Code using this extension must be compiled and linked using the `ppx_inline_test_lib`
-library. The `ppx_inline_test` syntax extension will reject any test if it wasn't passed
-a `-inline-test-lib libname` flag.
+Code using this extension must be compiled and linked using the
+`ppx_inline_test.runtime-lib` library. The `ppx_inline_test` syntax
+extension will reject any test if it wasn't passed a `-inline-test-lib
+libname` flag.
+
+To integrate this in your build system, you should look at the
+instruction provided for
+[the ppx\_driver ocamlbuild plugin](https://github.com/janestreet/ppx_driver). There
+are a few working example using oasis in the
+[Jane Street tests](https://github.com/janestreet/jane-street-tests).
+
+### Execution
 
 Tests are executed when the executable containing the tests is called with command line
 arguments:
@@ -92,7 +101,7 @@ necessarily want to run their tests too. For instance, `core` is built by giving
 core_extended`. And now when an executable linked with both `core` and `core_extended` is
 run with a `libname` of `core_extended`, only the tests of `core_extended` are run.
 
-Finally, after running tests, `Ppx_inline_test_lib.Runtime.summarize ()` should be called
+Finally, after running tests, `Ppx_inline_test_lib.Runtime.exit ()` should be called
 (to exit with an error and a summary of the number of failed tests if there were errors or
 exit normally otherwise).
 

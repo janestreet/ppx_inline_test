@@ -21,10 +21,6 @@ module Test_result = struct
   ;;
 
   let combine_all ts = List.fold_left combine Success ts
-
-  let global_t = ref Success
-  let exit () = exit (to_exit_code !global_t)
-  let record t = global_t := combine !global_t t
 end
 
 let parse_argv argv l f msg =
@@ -64,6 +60,7 @@ let log = ref None
 let time_sec = ref 0.
 
 let use_color = ref true
+let diff_command = ref None
 
 let displayed_descr descr filename line start_pos end_pos =
   Printf.sprintf "File %S, line %d, characters %d-%d%s"
@@ -136,7 +133,9 @@ let () =
                       - File \"file.ml\"
                       - File \"file.ml\", line 23
                       - File \"file.ml\", line 23, characters 2-3";
-      "-no-color", Arg.Clear use_color, " Summarize tests using color";
+      "-no-color", Arg.Clear use_color, " Summarize tests without using color";
+      "-diff-cmd", Arg.String (fun s -> diff_command := Some s),
+      " Diff command for tests that require diffing";
     ]) (fun anon ->
       Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
       exit 1
@@ -385,3 +384,12 @@ let summarize () =
     end
 
 let use_color = !use_color
+let diff_command = !diff_command
+
+let evaluators = ref [summarize]
+let add_evaluator ~f = evaluators := f :: !evaluators
+let exit () =
+  List.map (fun f -> f ()) (List.rev !evaluators)
+  |> Test_result.combine_all
+  |> Test_result.to_exit_code
+  |> exit
