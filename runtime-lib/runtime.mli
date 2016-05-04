@@ -20,7 +20,7 @@ val test : config -> descr -> filename -> line_number -> start_pos -> end_pos ->
 val test_unit : config -> descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
 val test_module : config -> descr -> filename -> line_number -> start_pos -> end_pos -> (unit -> unit) -> unit
 val summarize : unit -> Test_result.t
-  [@@deprecated "[since 2016-04] use eval_all_and_exit instead"]
+  [@@deprecated "[since 2016-04] use add_evaluator instead"]
 
 (* These functions are meant to be called by hand, they should be in an other module. *)
 val collect : (unit -> unit) -> (unit -> unit) list

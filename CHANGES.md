@@ -1,3 +1,9 @@
+## 113.33.03
+
+- Changed the runtime API to make it easier to build test runners:
+  replace the `Runtime.Test_result.record` system by
+  `Runtime.add_evaluator`
+
 ## 113.33.00
 
 - Allow to configure hooks for inline tests by redefining a module
