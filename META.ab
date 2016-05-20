@@ -1,6 +1,6 @@
 version = "$(pkg_version)"
 description = "Syntax extension for writing in-line tests in ocaml code"
-requires = "ppx_core ppx_driver ppx_inline_test.libname"
+requires = "compiler-libs.common ppx_core ppx_driver ppx_inline_test.libname"
 requires(-ppx_driver)        += "ppx_inline_test.runtime-lib"
 requires(ppx_driver,toploop) += "ppx_inline_test.runtime-lib"
 archive(ppx_driver, byte  ) = "ppx_inline_test.cma"

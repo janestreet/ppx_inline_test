@@ -71,12 +71,18 @@ let descr ~(loc:Location.t) ?(inner_loc=loc) e_opt id_opt =
    eint ~loc end_pos)
 ;;
 
-let apply_to_descr lid ~loc ?inner_loc e_opt id_opt more_arg =
+let apply_to_descr lid ~loc ?inner_loc e_opt id_opt tags more_arg =
   let descr, filename, line, start_pos, end_pos = descr ~loc ?inner_loc e_opt id_opt in
-  let config = [%expr (module Inline_test_config)] in
   let expr =
-    eapply ~loc (evar ~loc ("Ppx_inline_test_lib.Runtime." ^ lid))
-      [ config; descr; filename; line; start_pos; end_pos; more_arg ]
+    pexp_apply ~loc (evar ~loc ("Ppx_inline_test_lib.Runtime." ^ lid))
+      [ "config", [%expr (module Inline_test_config)]
+      ; "descr", descr
+      ; "tags", elist ~loc (List.map ~f:(estring ~loc) tags)
+      ; "filename", filename
+      ; "line_number", line
+      ; "start_pos", start_pos
+      ; "end_pos", end_pos
+      ; "", more_arg ]
   in
   maybe_drop loc expr
 ;;
@@ -87,26 +93,38 @@ let enabled () =
   | _          -> true
 ;;
 
-let assert_enabled loc =
+let all_tags = ["no-js"]
+
+let check_exn ~loc ~tags =
   if not (enabled ()) then
     Location.raise_errorf ~loc
       "ppx_inline_test: extension is disabled because the tests would be ignored \
-       (the build system didn't pass -inline-test-lib)"
+       (the build system didn't pass -inline-test-lib)";
+  List.iter tags ~f:(fun tag ->
+    if not (List.mem tag ~set:all_tags)
+    then
+      let hint = match Ppx_core.Spellcheck.spellcheck all_tags tag with
+        | None -> ""
+        | Some hint -> "\n"^hint
+      in
+      Location.raise_errorf ~loc
+        "ppx_inline_test: %S is not a valid tag for inline tests.%s" tag hint
+  )
 ;;
 
-let expand_test ~loc ~path:_ id e =
-  assert_enabled loc;
-  apply_to_descr "test" ~loc (Some e) id (pexp_fun ~loc "" None (punit ~loc) e)
+let expand_test ~loc ~path:_ ~name:id ~tags e =
+  check_exn ~loc ~tags;
+  apply_to_descr "test" ~loc (Some e) id tags (pexp_fun ~loc "" None (punit ~loc) e)
 ;;
 
-let expand_test_unit ~loc ~path:_ id e =
-  assert_enabled loc;
-  apply_to_descr "test_unit" ~loc (Some e) id (pexp_fun ~loc "" None (punit ~loc) e)
+let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
+  check_exn ~loc ~tags;
+  apply_to_descr "test_unit" ~loc (Some e) id tags (pexp_fun ~loc "" None (punit ~loc) e)
 ;;
 
-let expand_test_module ~loc ~path:_ id m =
-  assert_enabled loc;
-  apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id
+let expand_test_module ~loc ~path:_ ~name:id ~tags m =
+  check_exn ~loc ~tags;
+  apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id tags
     (pexp_fun ~loc "" None (punit ~loc)
        (pexp_letmodule ~loc (Located.mk ~loc "M")
           m
@@ -116,31 +134,56 @@ let expand_test_module ~loc ~path:_ id m =
 module E = struct
   open Ast_pattern
 
+  let tags =
+    Attribute.declare
+      "tags"
+      Attribute.Context.pattern
+      (single_expr_payload (
+         pexp_tuple (many (estring __))
+         |||  map (estring __) ~f:(fun f x -> f [x])))
+      (fun x -> x)
+
+  let list_of_option = function
+    | None -> []
+    | Some x -> x
+
+  let opt_name () =
+         map (pstring __) ~f:(fun f x -> f (Some x))
+     ||| map ppat_any     ~f:(fun f   -> f None)
+     ||| map (ppat_var (string "__")) ~f:(fun f   -> f None)
+
   let opt_name_and_expr expr =
     pstr ((
       pstr_value nonrecursive (
-        value_binding
-          ~pat:(map (pstring __) ~f:(fun f x -> f (Some x)))
-          ~expr ^:: nil)
-      ||| map (pstr_eval expr nil) ~f:(fun f -> f None)
+        (value_binding
+           ~pat:(
+             map
+               (Attribute.pattern tags (opt_name ()))
+               ~f:(fun f attributes name_opt ->
+                 f ~name:name_opt ~tags:(list_of_option attributes)))
+           ~expr)
+        ^:: nil)
+      ||| map
+            (pstr_eval expr nil)
+            ~f:(fun f -> f ~name:None ~tags:[])
     ) ^:: nil)
 
   let test =
-    Extension.V2.declare_inline "inline_test.test"
+    Extension.declare_inline "inline_test.test"
       Extension.Context.structure_item
       (opt_name_and_expr __)
       expand_test
 
   let test_unit =
-    Extension.V2.declare_inline "inline_test.test_unit"
+    Extension.declare_inline "inline_test.test_unit"
       Extension.Context.structure_item
       (opt_name_and_expr __)
       expand_test_unit
 
   let test_module =
-    Extension.V2.declare_inline "inline_test.test_module"
+    Extension.declare_inline "inline_test.test_module"
       Extension.Context.structure_item
-      (opt_name_and_expr (pexp_pack __))
+      (opt_name_and_expr  (pexp_pack __))
       expand_test_module
 
   let all =
@@ -150,25 +193,25 @@ module E = struct
     ]
 end
 
+let opt_name_and_expr = E.opt_name_and_expr
+
 let () =
   Ppx_driver.register_transformation "inline-test"
     ~extensions:E.all
-    ~impl:(fun st ->
-      match Ppx_inline_test_libname.get () with
-      | None -> st
-      | Some libname ->
-        let loc =
-          match st with
-          | [] -> Location.none
-          | { pstr_loc = loc; _ } :: _ -> { loc with loc_end = loc.loc_start }
-        in
+    ~enclose_impl:(fun loc ->
+      match loc, Ppx_inline_test_libname.get () with
+      | None, _ | _, None -> ([], [])
+      | Some loc, Some (libname, partition) ->
         (* See comment in benchmark_accumulator.ml *)
-        List.concat
-          [ maybe_drop loc [%expr Ppx_inline_test_lib.Runtime.set_lib
-                                    [%e estring ~loc libname]]
-          ; st
-          ; maybe_drop loc [%expr Ppx_inline_test_lib.Runtime.unset_lib
-                                    [%e estring ~loc libname]]
-          ]
+        let header =
+          let loc = { loc with loc_end = loc.loc_start } in
+          maybe_drop loc [%expr Ppx_inline_test_lib.Runtime.set_lib_and_partition
+                                  [%e estring ~loc libname] [%e estring ~loc partition]]
+        and footer =
+          let loc = { loc with loc_start = loc.loc_end } in
+          maybe_drop loc [%expr Ppx_inline_test_lib.Runtime.unset_lib
+                                  [%e estring ~loc libname]]
+        in
+        (header, footer)
     )
 ;;

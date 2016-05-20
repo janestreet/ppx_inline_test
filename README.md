@@ -19,6 +19,27 @@ reaches the structure item (i.e. at toplevel for a toplevel test; when
 the functor is applied for a test defined in the body of a functor,
 etc.).
 
+Tags
+----
+Tests can be dropped based on their tags (see command line flags `-drop-tag`)
+
+One can tag tests with the following construct:
+
+```ocaml
+let%test "name" [@tags "no-js"] = <expr>
+let%test "name" [@tags "no-js", "other-tag"] = <expr>
+let%test __ [@tags "no-js"] = <expr>
+```
+
+Note about the double underscore:
+OCaml 4.02 drops the annotation on single underscore, but not on
+double underscore. That is fixed in 4.03.
+
+Available tags are:
+*   `no-js`
+
+    For tests that should not run when compiling OCaml to JavaScript.
+
 Examples
 --------
 
@@ -114,15 +135,48 @@ of these are:
 
     to see the tests as they run
 
-*    `-only-test location`
+*   `-only-test location`
 
-     where location is either a filename `-only-test main.ml`, a filename
-     with a line number `-only-test main.ml:32`, or with the syntax that the
-     compiler uses: `File "main.ml"`, or `File "main.ml", line 32` or `File "main.ml",
-     line 32, characters 2-6` (characters are ignored).
-     The position that matters is the position of the `let%test` or `let%test_unit`.
+    where location is either a filename `-only-test main.ml`, a filename
+    with a line number `-only-test main.ml:32`, or with the syntax that the
+    compiler uses: `File "main.ml"`, or `File "main.ml", line 32` or `File "main.ml",
+    line 32, characters 2-6` (characters are ignored).
+    The position that matters is the position of the `let%test` or `let%test_unit`.
 
-     The positions shown by `-verbose` are valid inputs for `-only-test`.
+    The positions shown by `-verbose` are valid inputs for `-only-test`.
 
-     If no `-only-test` flag is given, all the tests are
-     run. Otherwise all the tests matching any of the locations are run.
+    If no `-only-test` flag is given, all the tests are
+    run. Otherwise all the tests matching any of the locations are run.
+
+*   `-drop-tag tag`
+ 
+    drop all the tests tagged with `tag`.
+    
+Parallelizing tests
+-------------------
+
+If you pass arguments of the form `-inline-test-lib lib:partition` to `ppx_inline_test`,
+then you will be able to run tests from a given source file in parallel with tests from
+other source files. All the tests inside the same source file are still run sequentially.
+
+You should pick different `partition` names for the different files in your library (the
+name of the .ml files for instance).
+
+`ppx_inline_test_lib` currently requires some external system like a build system to run
+it multiple times in parallel, although we may make it possible to run the inline tests in
+parallel directly in the future.
+
+If you do that, you can now use two new flags of the executable containing the tests:
+
+*   `-list-partitions`
+
+    lists all the partitions that contain at least one test, one per line.
+
+*   `-partition P`
+
+    only run the tests of the library that are encountered at toplevel of the source file
+    that was preprocessed with the given partition `P` (the tests need not be
+    syntactically in the file, they could be the result of applying a functor)
+
+A build system can combine these two commands by first listing partitions, and then
+running one command for each partition.

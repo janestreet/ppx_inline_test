@@ -3,7 +3,11 @@
 
 let count = ref 0
 let check i =
-  assert (!count = i);
+  assert (
+    match Sys.getenv "DONT_ASSUME_ALL_TESTS_RUN" with
+    | (_ : string) -> true
+    | exception Not_found -> !count = i
+  );
   incr count
 
 module F(X : sig val start : int end) = struct

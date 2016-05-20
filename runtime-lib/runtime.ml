@@ -31,6 +31,7 @@ let parse_argv argv l f msg =
   | Arg.Help msg -> Printf.printf "%s" msg; exit 0
 ;;
 
+type tags = string list
 type descr = string
 let test_modules_ran = ref 0
 let test_modules_failed = ref 0
@@ -42,11 +43,56 @@ type line_number = int
 type start_pos = int
 type end_pos = int
 type config = (module Inline_test_config.S)
+type 'a test_function_args
+   = config:config
+  -> descr:descr
+  -> tags:tags
+  -> filename:filename
+  -> line_number:line_number
+  -> start_pos:start_pos
+  -> end_pos:end_pos
+  -> 'a
+type which_tests =
+  { only_test_location : (filename * line_number option * bool ref) list
+  ; do_not_test_tags : tags
+  ; partition : string option
+  }
+type test_mode =
+  { libname : string
+  ; what_to_do :
+      [ `Run_tests of which_tests
+      | `List_partitions
+      ]
+  }
 let action : [
 | `Ignore
-| `Run_lib of string * (filename * line_number option * bool ref) list
+| `Test_mode of test_mode
 | `Collect of (unit -> unit) list ref
 ] ref = ref `Ignore
+
+module Partition : sig
+  val found_test : unit -> unit
+  val set_current : string -> unit
+  val is_current : string option -> bool
+  val all : unit -> string list
+end = struct
+  let all = Hashtbl.create 23
+  let current = ref ""
+  let set_current x = current := x
+  let found_test () =
+    if !current <> "" && not (Hashtbl.mem all !current) then
+      Hashtbl.add all !current ()
+  ;;
+  let is_current = function
+    | None -> true
+    | Some p -> p = !current
+  ;;
+  let all () =
+    List.sort String.compare
+      (Hashtbl.fold (fun k () acc -> k :: acc) all [])
+  ;;
+end
+
 let module_descr = ref []
 let verbose = ref false
 let strict = ref false
@@ -60,6 +106,7 @@ let log = ref None
 let time_sec = ref 0.
 
 let use_color = ref true
+let in_place  = ref false
 let diff_command = ref None
 
 let displayed_descr descr filename line start_pos end_pos =
@@ -94,9 +141,16 @@ let () =
   | name :: "inline-test-runner" :: lib :: rest -> begin
     (* when we see this argument, we switch to test mode *)
     let tests = ref [] in
+    let list_partitions = ref false in
+    let partition = ref None in
+    let disabled_tags = ref [] in
     parse_argv (Array.of_list (name :: rest)) (Arg.align [
       "-list-test-names", Arg.Unit (fun () -> list_test_names := true; verbose := true),
         " Do not run tests but show what would have been run";
+      "-list-partitions", Arg.Unit (fun () -> list_partitions := true),
+        " Lists all the partitions that contain at least one test or test_module";
+      "-partition", Arg.String (fun i -> partition := Some i),
+        " Only run the tests in the given partition";
       "-verbose", Arg.Set verbose, " Show the tests as they run";
       "-stop-on-error", Arg.Set stop_on_error, " Run tests only up to the first error";
       "-strict", Arg.Set strict, " End with an error if no tests were run";
@@ -105,6 +159,9 @@ let () =
         (try Sys.remove "inline_tests.log" with _ -> ());
         log := Some (open_out "inline_tests.log")
       ), " Log the tests run in inline_tests.log";
+      "-drop-tag", Arg.String (fun s ->
+        disabled_tags := s :: !disabled_tags
+      ), "tag Ignore tests tagged with [tag].";
       "-only-test", Arg.String (fun s ->
         let filename, index =
           match parse_descr s with
@@ -134,20 +191,31 @@ let () =
                       - File \"file.ml\", line 23
                       - File \"file.ml\", line 23, characters 2-3";
       "-no-color", Arg.Clear use_color, " Summarize tests without using color";
+      "-in-place", Arg.Set in_place, " Update expect tests in place";
       "-diff-cmd", Arg.String (fun s -> diff_command := Some s),
       " Diff command for tests that require diffing";
     ]) (fun anon ->
       Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
       exit 1
     ) (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
-    action := `Run_lib (lib, !tests)
+    action :=
+      `Test_mode
+        { libname = lib
+        ; what_to_do =
+            if !list_partitions
+            then `List_partitions
+            else
+              `Run_tests { only_test_location = !tests;
+                           do_not_test_tags = !disabled_tags;
+                           partition = !partition }
+        }
     end
   | _ ->
     ()
 
 let testing =
   match !action with
-  | `Run_lib _ -> true
+  | `Test_mode _ -> true
   | `Ignore -> false
   | `Collect _ -> assert false
 
@@ -198,6 +266,9 @@ let position_match def_filename def_line_number l =
     found
   ) l
 
+let not_disabled tags do_not_test_tags =
+  not (List.exists (fun gr -> List.mem gr do_not_test_tags) tags)
+
 let print_delayed_errors () =
   match List.rev !delayed_errors with
   | [] -> ()
@@ -220,59 +291,82 @@ let eprintf_or_delay fmt =
 let add_hooks ((module C) : config) f =
   fun () -> C.pre_test_hook (); f ()
 
-let test config (descr : descr) def_filename def_line_number start_pos end_pos f =
+let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
+      ~start_pos ~end_pos f =
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
-  | `Run_lib (lib, l) ->
-    let should_run =
-      Some lib = !dynamic_lib
-      && begin match l with
-      | [] -> true
-      | _ :: _ -> position_match def_filename def_line_number l
-      end in
-    if should_run then begin
-      let descr = descr () in
-      incr tests_ran;
-      begin match !log with
-      | None -> ()
-      | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
-      end;
-      if !verbose then begin
-        Printf.printf "%s%!" descr
-      end;
-      let print_time_taken () =
-        (* If !list_test_names, this is is a harmless zero. *)
-        if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
-      in
-      try
-        let failed = not !list_test_names && not (time f) in
-        print_time_taken ();
-        if failed then begin
-          incr tests_failed;
-          eprintf_or_delay "%s is false.\n%s\n%!" descr
-            (string_of_module_descr ())
-        end
-      with exn ->
-        print_time_taken ();
-        let backtrace = backtrace_indented ~by:2 in
-        incr tests_failed;
-        let exn_str = Printexc.to_string exn in
-        let sep = if String.contains exn_str '\n' then "\n" else " " in
-        eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
-          backtrace (string_of_module_descr ())
-    end
+  | `Test_mode { libname; what_to_do } ->
+    if Some libname = !dynamic_lib then begin
+      match what_to_do with
+      | `List_partitions -> Partition.found_test ()
+      | `Run_tests { only_test_location; do_not_test_tags; partition } ->
+        let should_run =
+          begin match only_test_location with
+          | [] -> true
+          | _ :: _ -> position_match def_filename def_line_number only_test_location
+          end
+          && not_disabled tags do_not_test_tags
+          && Partition.is_current partition
+       in
+       if should_run then begin
+         let descr = descr () in
+         incr tests_ran;
+         begin match !log with
+         | None -> ()
+         | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
+         end;
+         if !verbose then begin
+           Printf.printf "%s%!" descr
+         end;
+         let print_time_taken () =
+           (* If !list_test_names, this is is a harmless zero. *)
+           if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
+         in
+         try
+           let failed = not !list_test_names && not (time f) in
+           print_time_taken ();
+           if failed then begin
+             incr tests_failed;
+             eprintf_or_delay "%s is false.\n%s\n%!" descr
+               (string_of_module_descr ())
+           end
+         with exn ->
+           print_time_taken ();
+           let backtrace = backtrace_indented ~by:2 in
+           incr tests_failed;
+           let exn_str = Printexc.to_string exn in
+           let sep = if String.contains exn_str '\n' then "\n" else " " in
+           eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
+             backtrace (string_of_module_descr ())
+       end
+   end
   | `Ignore -> ()
   | `Collect r ->
     r := (fun () -> if not (time f) then failwith (descr ())) :: !r
 
-
-let set_lib static_lib =
+let set_lib_and_partition static_lib partition =
   match !dynamic_lib with
-  | None -> dynamic_lib := Some static_lib
-  | Some _ -> ()
+  | Some _ ->
     (* possible if the interface is used explicitly or if we happen to dynlink something
        that contain tests *)
+    ()
+  | None ->
+    dynamic_lib := Some static_lib;
+    match !action with
+    | `Collect _ | `Ignore -> ()
+    | `Test_mode { libname; what_to_do } ->
+      if libname = static_lib then begin
+        let requires_partition =
+          match what_to_do with
+          | `List_partitions | `Run_tests { partition = Some _; _ } -> true
+          | `Run_tests { partition = None; _ } -> false
+        in
+        if partition = "" && requires_partition
+        then failwith "ppx_inline_test: cannot use -list-partition or -partition \
+                       without specifying a partition at preprocessing time"
+        else Partition.set_current partition
+      end
 
 let unset_lib static_lib =
   match !dynamic_lib with
@@ -284,8 +378,8 @@ let unset_lib static_lib =
   | Some lib ->
     if lib = static_lib then dynamic_lib := None
 
-let test_unit config descr def_filename def_line_number start_pos end_pos f =
-  test config descr def_filename def_line_number start_pos end_pos
+let test_unit ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos f =
+  test ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos
     (fun () -> time f; true)
 
 let collect f =
@@ -301,24 +395,32 @@ let collect f =
     action := prev_action;
     raise e
 
-let test_module config descr def_filename def_line_number start_pos end_pos f =
+let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
+      ~start_pos ~end_pos f =
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match !action with
-  | `Run_lib (lib, _) ->
-    (* run test_modules, in case they define the test we are looking for (if we are
-       even looking for a test) *)
-    if Some lib = !dynamic_lib then begin
-      incr test_modules_ran;
-      let descr = descr () in
-      try with_descr descr f
-      with exn ->
-        let backtrace = backtrace_indented ~by:2 in
-        incr test_modules_failed;
-        let exn_str = Printexc.to_string exn in
-        let sep = if String.contains exn_str '\n' then "\n" else " " in
-        eprintf_or_delay ("TES" ^^ "T_MODULE at %s threw%s%s.\n%s%s\n%!")
-          (String.uncapitalize descr) sep exn_str backtrace (string_of_module_descr ())
+  | `Test_mode { libname; what_to_do } ->
+    if Some libname = !dynamic_lib then begin
+      match what_to_do with
+      | `List_partitions -> Partition.found_test ()
+      | `Run_tests { do_not_test_tags; partition; _ } ->
+        (* run test_modules, in case they define the test we are looking for (if we are
+           even looking for a test) *)
+        if not_disabled tags do_not_test_tags
+        && Partition.is_current partition
+        then begin
+          incr test_modules_ran;
+          let descr = descr () in
+          try with_descr descr f
+          with exn ->
+            let backtrace = backtrace_indented ~by:2 in
+            incr test_modules_failed;
+            let exn_str = Printexc.to_string exn in
+            let sep = if String.contains exn_str '\n' then "\n" else " " in
+            eprintf_or_delay ("TES" ^^ "T_MODULE at %s threw%s%s.\n%s%s\n%!")
+              (String.uncapitalize descr) sep exn_str backtrace (string_of_module_descr ())
+        end
     end
   | `Ignore -> ()
   | `Collect r ->
@@ -336,8 +438,10 @@ let summarize () =
                       been run. You should use the inline_tests_runner script to run \n\
                       tests.\n%!";
     Test_result.Error
-  | `Run_lib _
-  | `Collect _ -> begin
+  | `Test_mode { libname = _ ; what_to_do = `List_partitions } ->
+    List.iter (Printf.printf "%s\n") (Partition.all ());
+    Test_result.Success
+  | (`Test_mode _ | `Collect _ as action) -> begin
       begin match !log with
       | None -> ()
       | Some ch -> close_out ch
@@ -349,19 +453,19 @@ let summarize () =
             Printf.eprintf "%d tests ran, %d test_modules ran\n%!" !tests_ran !test_modules_ran
           end;
           let errors =
-            match !action with
-            | `Run_lib (_, tests) ->
+            match action with
+            | `Collect _ -> None
+            | `Test_mode { what_to_do = `List_partitions; _ } -> assert false
+            | `Test_mode { what_to_do = `Run_tests { only_test_location; _}; _ } ->
               let unused_tests =
-                List.filter (fun (_, _, used) -> not !used) tests in
-              begin match unused_tests with
+                List.filter (fun (_, _, used) -> not !used) only_test_location in
+              match unused_tests with
               | [] -> None
               | _ :: _ -> Some unused_tests
-              end
-            | `Ignore
-            | `Collect _ -> None in
+          in
           match errors with
           | Some tests ->
-            Printf.eprintf "Pa_ounit error: the following -only-test flags matched nothing:";
+            Printf.eprintf "ppx_inline_test error: the following -only-test flags matched nothing:";
             List.iter (fun (filename, line_number_opt, _) ->
               match line_number_opt with
               | None -> Printf.eprintf " %s" filename
@@ -371,7 +475,7 @@ let summarize () =
             Test_result.Error
           | None ->
             if !tests_ran = 0 && !strict then begin
-              Printf.eprintf "Pa_ounit error: no tests have been run.\n%!";
+              Printf.eprintf "ppx_inline_test error: no tests have been run.\n%!";
               Test_result.Error
             end else begin
               Test_result.Success
@@ -384,6 +488,7 @@ let summarize () =
     end
 
 let use_color = !use_color
+let in_place  = !in_place
 let diff_command = !diff_command
 
 let evaluators = ref [summarize]

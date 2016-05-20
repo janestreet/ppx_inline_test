@@ -1,0 +1,16 @@
+--- test.output
++++ test-partitions.output
+@@ -1,3 +1,5 @@
++Test for partition config:
++Test for partition failures:
+ File "failures.ml", line 4, characters 0-18: <<false>> is false.
+ 
+ File "failures.ml", line 5, characters 0-29: name1 threw Pervasives.Exit.
+@@ -30,5 +32,6 @@
+   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+ 
+-FAILED 5 / 12 tests, 2 TEST_MODULES
++FAILED 5 / 5 tests, 2 TEST_MODULES
+ code: 2
++Test for partition order:
