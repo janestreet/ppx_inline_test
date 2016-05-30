@@ -64,11 +64,37 @@ type test_mode =
       | `List_partitions
       ]
   }
-let action : [
-| `Ignore
-| `Test_mode of test_mode
-| `Collect of (unit -> unit) list ref
-] ref = ref `Ignore
+
+module Action : sig
+  type t = [
+    | `Ignore
+    | `Test_mode of test_mode
+    | `Collect of (unit -> unit) list ref
+  ]
+  val get : unit -> t
+  val set : t -> unit
+end = struct
+  type t = [
+    | `Ignore
+    | `Test_mode of test_mode
+    | `Collect of (unit -> unit) list ref
+  ]
+  let action : t ref = ref `Ignore
+  let force_drop =
+    try ignore (Sys.getenv "FORCE_DROP_INLINE_TEST" : string); true
+    with Not_found -> false
+  let get () =
+    (* This is useful when compiling to javascript.
+       Js_of_ocaml can statically evaluate [Sys.getenv "FORCE_DROP_INLINE_TEST"]
+       and inline the result ([`Ignore]) whenever [get ()] is called.
+       Unit tests can then be treated as deadcode since the argument [f] of the [test]
+       function below is never used. *)
+    if force_drop
+    then `Ignore
+    else !action
+
+  let set v = action := v
+end
 
 module Partition : sig
   val found_test : unit -> unit
@@ -77,8 +103,7 @@ module Partition : sig
   val all : unit -> string list
 end = struct
   let all = Hashtbl.create 23
-  let current = ref ""
-  let set_current x = current := x
+  let current = ref ""  let set_current x = current := x
   let found_test () =
     if !current <> "" && not (Hashtbl.mem all !current) then
       Hashtbl.add all !current ()
@@ -198,7 +223,7 @@ let () =
       Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
       exit 1
     ) (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
-    action :=
+    Action.set (
       `Test_mode
         { libname = lib
         ; what_to_do =
@@ -208,13 +233,13 @@ let () =
               `Run_tests { only_test_location = !tests;
                            do_not_test_tags = !disabled_tags;
                            partition = !partition }
-        }
+        })
     end
   | _ ->
     ()
 
 let testing =
-  match !action with
+  match Action.get () with
   | `Test_mode _ -> true
   | `Ignore -> false
   | `Collect _ -> assert false
@@ -295,7 +320,7 @@ let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_numbe
       ~start_pos ~end_pos f =
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
-  match !action with
+  match Action.get () with
   | `Test_mode { libname; what_to_do } ->
     if Some libname = !dynamic_lib then begin
       match what_to_do with
@@ -353,7 +378,7 @@ let set_lib_and_partition static_lib partition =
     ()
   | None ->
     dynamic_lib := Some static_lib;
-    match !action with
+    match Action.get () with
     | `Collect _ | `Ignore -> ()
     | `Test_mode { libname; what_to_do } ->
       if libname = static_lib then begin
@@ -383,23 +408,23 @@ let test_unit ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos f 
     (fun () -> time f; true)
 
 let collect f =
-  let prev_action = !action in
+  let prev_action = Action.get () in
   let tests = ref [] in
-  action := `Collect tests;
+  Action.set (`Collect tests);
   try
     time f;
     let tests = List.rev !tests in
-    action := prev_action;
+    Action.set prev_action;
     tests
   with e ->
-    action := prev_action;
+    Action.set prev_action;
     raise e
 
 let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
       ~start_pos ~end_pos f =
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
-  match !action with
+  match Action.get () with
   | `Test_mode { libname; what_to_do } ->
     if Some libname = !dynamic_lib then begin
       match what_to_do with
@@ -428,7 +453,7 @@ let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_lin
     r := List.rev_append (collect f) !r
 
 let summarize () =
-  match !action with
+  match Action.get () with
   | `Ignore ->
     if Sys.argv <> [||] && Filename.basename Sys.argv.(0) = "inline_tests_runner.exe" then
       Printf.eprintf "inline_tests_runner.exe is not supposed to be run by hand, you \n\
