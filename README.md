@@ -28,12 +28,8 @@ One can tag tests with the following construct:
 ```ocaml
 let%test "name" [@tags "no-js"] = <expr>
 let%test "name" [@tags "no-js", "other-tag"] = <expr>
-let%test __ [@tags "no-js"] = <expr>
+let%test _ [@tags "no-js"] = <expr>
 ```
-
-Note about the double underscore:
-OCaml 4.02 drops the annotation on single underscore, but not on
-double underscore. That is fixed in 4.03.
 
 Available tags are:
 *   `no-js`

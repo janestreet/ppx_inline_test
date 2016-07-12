@@ -75,14 +75,14 @@ let apply_to_descr lid ~loc ?inner_loc e_opt id_opt tags more_arg =
   let descr, filename, line, start_pos, end_pos = descr ~loc ?inner_loc e_opt id_opt in
   let expr =
     pexp_apply ~loc (evar ~loc ("Ppx_inline_test_lib.Runtime." ^ lid))
-      [ "config", [%expr (module Inline_test_config)]
-      ; "descr", descr
-      ; "tags", elist ~loc (List.map ~f:(estring ~loc) tags)
-      ; "filename", filename
-      ; "line_number", line
-      ; "start_pos", start_pos
-      ; "end_pos", end_pos
-      ; "", more_arg ]
+      [ Labelled "config", [%expr (module Inline_test_config)]
+      ; Labelled "descr", descr
+      ; Labelled "tags", elist ~loc (List.map ~f:(estring ~loc) tags)
+      ; Labelled "filename", filename
+      ; Labelled "line_number", line
+      ; Labelled "start_pos", start_pos
+      ; Labelled "end_pos", end_pos
+      ; Nolabel, more_arg ]
   in
   maybe_drop loc expr
 ;;
@@ -114,18 +114,18 @@ let check_exn ~loc ~tags =
 
 let expand_test ~loc ~path:_ ~name:id ~tags e =
   check_exn ~loc ~tags;
-  apply_to_descr "test" ~loc (Some e) id tags (pexp_fun ~loc "" None (punit ~loc) e)
+  apply_to_descr "test" ~loc (Some e) id tags (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
   check_exn ~loc ~tags;
-  apply_to_descr "test_unit" ~loc (Some e) id tags (pexp_fun ~loc "" None (punit ~loc) e)
+  apply_to_descr "test_unit" ~loc (Some e) id tags (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_module ~loc ~path:_ ~name:id ~tags m =
   check_exn ~loc ~tags;
   apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id tags
-    (pexp_fun ~loc "" None (punit ~loc)
+    (pexp_fun ~loc Nolabel None (punit ~loc)
        (pexp_letmodule ~loc (Located.mk ~loc "M")
           m
           (eunit ~loc)))
@@ -163,9 +163,6 @@ module E = struct
                  f ~name:name_opt ~tags:(list_of_option attributes)))
            ~expr)
         ^:: nil)
-      ||| map
-            (pstr_eval expr nil)
-            ~f:(fun f -> f ~name:None ~tags:[])
     ) ^:: nil)
 
   let test =
