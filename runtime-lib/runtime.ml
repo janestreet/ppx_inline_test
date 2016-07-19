@@ -267,7 +267,7 @@ let with_descr (descr : descr) f =
 
 let string_of_module_descr () =
   String.concat "" (
-    List.map (fun s -> "  in TES" ^ "T_MODULE at " ^ String.uncapitalize s ^ "\n")
+    List.map (fun s -> "  in TES" ^ "T_MODULE at " ^ String.uncapitalize_ascii s ^ "\n")
       !module_descr
   )
 
@@ -444,7 +444,7 @@ let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_lin
             let exn_str = Printexc.to_string exn in
             let sep = if String.contains exn_str '\n' then "\n" else " " in
             eprintf_or_delay ("TES" ^^ "T_MODULE at %s threw%s%s.\n%s%s\n%!")
-              (String.uncapitalize descr) sep exn_str backtrace (string_of_module_descr ())
+              (String.uncapitalize_ascii descr) sep exn_str backtrace (string_of_module_descr ())
         end
     end
   | `Ignore -> ()
