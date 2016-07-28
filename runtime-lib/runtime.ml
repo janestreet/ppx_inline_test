@@ -244,6 +244,15 @@ let testing =
   | `Ignore -> false
   | `Collect _ -> assert false
 
+let am_running_inline_test_env_var = "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST"
+
+let am_running_inline_test =
+  testing
+  || (
+    match Sys.getenv am_running_inline_test_env_var with
+    | (_ : string) -> true
+    | exception Not_found -> false)
+
 let time f =
   let before_sec = Sys.time () in
   let res =
