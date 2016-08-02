@@ -93,7 +93,7 @@ let enabled () =
   | _          -> true
 ;;
 
-let all_tags = ["no-js"]
+let all_tags = ["no-js"; "js-only"]
 
 let check_exn ~loc ~tags =
   if not (enabled ()) then

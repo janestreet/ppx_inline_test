@@ -29,12 +29,12 @@ One can tag tests with the following construct:
 let%test "name" [@tags "no-js"] = <expr>
 let%test "name" [@tags "no-js", "other-tag"] = <expr>
 let%test _ [@tags "no-js"] = <expr>
+let%test _ [@tags "js-only"] = <expr>
 ```
 
 Available tags are:
-*   `no-js`
-
-    For tests that should not run when compiling OCaml to JavaScript.
+*   `no-js` for tests that should not run when compiling Ocaml to Javascript
+*   `js-only` for tests that should only run in Javascript
 
 Examples
 --------
