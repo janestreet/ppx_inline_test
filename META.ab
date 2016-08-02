@@ -41,15 +41,6 @@ package "libname" (
   plugin(byte  ) = "ppx_inline_test_libname.cma"
   plugin(native) = "ppx_inline_test_libname.cmxs"
   exists_if = "ppx_inline_test_libname.cma"
-
-  # Until this is released: https://github.com/whitequark/ppx_deriving/pull/95
-  package "for_ppx_deriving" (
-    description = "Don't use this directly"
-    error(ppx_driver) = "Cannot use ppx_inline_test.libname.for_ppx_deriving when ppx_driver is set"
-    requires = "ppx_deriving ppx_driver.for_ppx_deriving"
-    exists_if = "ppx_inline_test_libname.cma"
-    ppxopt(-custom_ppx) = "ppx_deriving,./ppx_inline_test_libname.cma"
-  )
 )
 
 package "runner" (
