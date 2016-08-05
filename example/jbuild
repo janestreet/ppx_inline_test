@@ -1,0 +1,3 @@
+(library
+ ((name ppx_inline_test_example_lib)
+  (libraries (core))))

@@ -1,0 +1,6 @@
+(library
+ ((name ppx_inline_test_libname)
+  (public_name ppx_inline_test.libname)
+  (wrapped false)
+  (libraries (ppx_driver))
+  (preprocess ((no_preprocessing All)))))

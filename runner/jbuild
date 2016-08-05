@@ -1,0 +1,11 @@
+;; This module is linked by jenga at the very end of all the inline tests runners.  jenga
+;; assumes the existence of ppx_inline_test_runner.ml, and that it does not depend on
+;; other ml files.
+(executables
+ ;; We use long module names to avoid clash in the public release
+ ((names (ppx_inline_test_runner))
+  (public_release ((build_and_install_as_objects
+                    ((ppx_inline_test_runner    ppx_inline_test.runner)))))
+  (libraries (ppx_inline_test_lib))
+  ;; This [preprocess] is to break a cycle in the public release
+  (preprocess (((pps ()) All)))))
