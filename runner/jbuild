@@ -7,5 +7,6 @@
   (public_release ((build_and_install_as_objects
                     ((ppx_inline_test_runner    ppx_inline_test.runner)))))
   (libraries (ppx_inline_test_lib))
+  (js_of_ocaml ())
   ;; This [preprocess] is to break a cycle in the public release
   (preprocess (((pps ()) All)))))
