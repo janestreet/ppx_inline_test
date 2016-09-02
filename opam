@@ -19,4 +19,4 @@ depends: [
   "ppx_tools"      {>= "0.99.3"}
 ]
 available: [ ocaml-version >= "4.03.0" ]
-conclicts: [ "oasis" {= "0.4.7"} ]
+conflicts: [ "oasis" {= "0.4.7"} ]
