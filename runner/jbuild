@@ -10,3 +10,5 @@
   (js_of_ocaml ())
   ;; This [preprocess] is to break a cycle in the public release
   (preprocess (((pps ()) All)))))
+
+(provides ppx_inline_test:ppx_inline_test_runner.cmx)

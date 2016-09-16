@@ -35,6 +35,7 @@ let%test _ [@tags "js-only"] = <expr>
 Available tags are:
 *   `no-js` for tests that should not run when compiling Ocaml to Javascript
 *   `js-only` for tests that should only run in Javascript
+*   `64-bits-only` for tests that should only run in 64 bits architectures
 
 Examples
 --------
