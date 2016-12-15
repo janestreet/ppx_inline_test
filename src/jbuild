@@ -1,10 +1,10 @@
 (library
  ((name ppx_inline_test)
   (public_name ppx_inline_test)
-  (public_release ((kind ppx_rewriter)))
-  (wrapped false)
-  (libraries (ocamlcommon
+  (kind ppx_rewriter)
+  (ppx_runtime_libraries (ppx_inline_test.runtime-lib))
+  (libraries (compiler-libs.common
               ppx_core
               ppx_driver
               ppx_inline_test_libname))
-  (preprocess ((metaquot All)))))
+  (preprocess metaquot)))

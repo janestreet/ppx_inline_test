@@ -146,16 +146,18 @@ let parse_descr str =
       try Some (Scanf.sscanf str " File %S %!" (fun file -> file, None))
       with _ -> None
 
-let indent ~by str =
-  let len = String.length str in
-  let buf = Buffer.create (len * 2) in
-  let indentation = String.make by ' ' in
-  Buffer.add_string buf indentation;
-  for i = 0 to len - 1; do
-    Buffer.add_char buf str.[i];
-    if str.[i] = '\n' && i <> len - 1 then Buffer.add_string buf indentation
-  done;
-  Buffer.contents buf
+let indent ~by = function
+  | "" -> ""
+  | str ->
+    let len = String.length str in
+    let buf = Buffer.create (len * 2) in
+    let indentation = String.make by ' ' in
+    Buffer.add_string buf indentation;
+    for i = 0 to len - 1; do
+      Buffer.add_char buf str.[i];
+      if str.[i] = '\n' && i <> len - 1 then Buffer.add_string buf indentation
+    done;
+    Buffer.contents buf
 
 let backtrace_indented ~by =
   let str = Printexc.get_backtrace () in

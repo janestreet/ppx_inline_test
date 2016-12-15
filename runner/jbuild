@@ -4,11 +4,10 @@
 (executables
  ;; We use long module names to avoid clash in the public release
  ((names (ppx_inline_test_runner))
-  (public_release ((build_and_install_as_objects
-                    ((ppx_inline_test_runner    ppx_inline_test.runner)))))
+  (object_public_name ppx_inline_test.runner)
   (libraries (ppx_inline_test_lib))
   (js_of_ocaml ())
   ;; This [preprocess] is to break a cycle in the public release
-  (preprocess (((pps ()) All)))))
+  (preprocess (pps ()))))
 
 (provides ppx_inline_test:ppx_inline_test_runner.cmx)

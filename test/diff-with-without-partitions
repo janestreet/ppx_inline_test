@@ -6,9 +6,9 @@
  File "failures.ml", line 4, characters 0-18: <<false>> is false.
  
  File "failures.ml", line 5, characters 0-29: name1 threw Pervasives.Exit.
-@@ -30,5 +32,6 @@
-   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
-   Re-raised at file "runtime.ml", line XXX, characters XXX-XXX
+@@ -16,5 +18,6 @@
+ 
+ TEST_MODULE at file "failures.ml", line 14, characters 0-60 threw Pervasives.Exit.
  
 -FAILED 5 / 12 tests, 2 TEST_MODULES
 +FAILED 5 / 5 tests, 2 TEST_MODULES

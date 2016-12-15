@@ -3,4 +3,4 @@
   (public_name ppx_inline_test.runtime-lib)
   (libraries (inline_test_config))
   (js_of_ocaml ())
-  (preprocess ())))
+  (preprocess no_preprocessing)))

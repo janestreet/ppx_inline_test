@@ -1,7 +1,6 @@
 (library
  ((name    inline_test_config)
   (public_name ppx_inline_test.config)
-  (wrapped false)
   (libraries ())
   (js_of_ocaml ())
-  (preprocess ((no_preprocessing All)))))
+  (preprocess no_preprocessing)))

@@ -1,6 +1,5 @@
 (library
  ((name ppx_inline_test_drop)
   (public_name ppx_inline_test.drop)
-  (wrapped false)
   (libraries (ppx_inline_test))
-  (preprocess ((no_preprocessing All)))))
+  (preprocess no_preprocessing)))

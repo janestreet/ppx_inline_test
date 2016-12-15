@@ -1,7 +1,7 @@
 (library
  ((name ppx_inline_test_lib_test)
   (inline_tests ((native build_but_dont_run)))
-  (preprocess (
+  (preprocess (per_file
                ((pps (ppx_inline_test)) (config failures order))
                ((pps (ppx_inline_test_drop)) (drop))
                ))))
@@ -13,7 +13,7 @@
   (deps (./inline_tests_runner ./inline_tests_runner.exe))
   (action "
 function run {
-  { OCAMLRUNPARAM=b=1 ./inline_tests_runner \"$@\" || echo code: $?; } |&
+  { OCAMLRUNPARAM= ./inline_tests_runner \"$@\" || echo code: $?; } |&
     sed -r -e '/runtime.ml/ s/[0-9]+/XXX/g'
 }
 run > test.output
@@ -31,9 +31,9 @@ diff -u  --label test.output --label test-partitions.output \
 ")))
 
 (alias
- ((name runtest)
-  (deps (test.expected test.output))
-  (action "diff -u test.expected test.output")))
+((name runtest)
+ (deps (test.expected test.output))
+ (action "diff -u test.expected test.output")))
 
 (alias
  ((name runtest)

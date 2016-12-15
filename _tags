@@ -1,9 +1,0 @@
-<**/*.ml{,i}>: warn(-40), no_alias_deps
-<**/*>: thread
-# This prevents the implicit addition of -ppx options by ocamlfind
-<**/*>: predicate(custom_ppx)
-<as_ppx/ppx.{byte,native}>: predicate(ppx_driver)
-<src/*>: linkall
-<runtime-lib/*.ml>: for-pack(Ppx_inline_test_lib)
-# OASIS_START
-# OASIS_STOP
