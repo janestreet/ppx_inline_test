@@ -93,7 +93,14 @@ let enabled () =
   | _          -> true
 ;;
 
-let all_tags = [ "no-js"; "js-only"; "64-bits-only" ]
+let all_tags = [ "no-js"; "js-only"; "64-bits-only"; "32-bits-only" ]
+
+let validate_tag tag =
+  if not (List.mem tag ~set:all_tags)
+  then
+    Error (Ppx_core.Spellcheck.spellcheck all_tags tag)
+  else
+    Ok ()
 
 let check_exn ~loc ~tags =
   if not (enabled ()) then
@@ -101,10 +108,11 @@ let check_exn ~loc ~tags =
       "ppx_inline_test: extension is disabled because the tests would be ignored \
        (the build system didn't pass -inline-test-lib)";
   List.iter tags ~f:(fun tag ->
-    if not (List.mem tag ~set:all_tags)
-    then
-      let hint = match Ppx_core.Spellcheck.spellcheck all_tags tag with
-        | None -> ""
+    match validate_tag tag with
+    | Ok () -> ()
+    | Error hint ->
+      let hint = match hint with
+        | None      -> ""
         | Some hint -> "\n"^hint
       in
       Location.raise_errorf ~loc

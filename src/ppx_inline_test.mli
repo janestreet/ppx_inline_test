@@ -12,6 +12,8 @@ val maybe_drop : Location.t -> Parsetree.expression -> Parsetree.structure
 
 (**/**)
 
+val validate_tag : string -> (unit, string option) result
+
 val opt_name_and_expr
   :  (Parsetree.expression, 'a, 'b) Ast_pattern.t
   -> (Parsetree.payload, name:string option -> tags:string list -> 'a, 'b)  Ast_pattern.t
