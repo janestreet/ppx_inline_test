@@ -1,9 +1,5 @@
-open StdLabels
-open Ppx_core.Std
-open Parsetree
+open Ppx_core
 open Ast_builder.Default
-
-[@@@metaloc loc]
 
 (* Generated code should depend on the environment in scope as little as
    possible.  E.g. rather than [foo = []] do [match foo with [] ->], to eliminate the
@@ -22,10 +18,10 @@ let set_default_maybe_drop x = maybe_drop_mode := x
 
 let () =
   Ppx_driver.add_arg "-inline-test-drop"
-    (Arg.Unit (fun () -> maybe_drop_mode := Drop))
+    (Unit (fun () -> maybe_drop_mode := Drop))
     ~doc:" Drop unit tests";
   Ppx_driver.add_arg "-inline-test-drop-with-deadcode"
-    (Arg.Unit (fun () -> maybe_drop_mode := Drop_with_deadcode))
+    (Unit (fun () -> maybe_drop_mode := Drop_with_deadcode))
     ~doc:" Drop unit tests by wrapping them inside deadcode to prevent \
           unused variable warnings.";
 ;;
@@ -96,7 +92,7 @@ let enabled () =
 let all_tags = [ "no-js"; "js-only"; "64-bits-only"; "32-bits-only" ]
 
 let validate_tag tag =
-  if not (List.mem tag ~set:all_tags)
+  if not (List.mem all_tags tag ~equal:String.equal)
   then
     Error (Ppx_core.Spellcheck.spellcheck all_tags tag)
   else

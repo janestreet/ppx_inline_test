@@ -12,7 +12,7 @@ depends: [
   "jbuilder"
   "ppx_core"
   "ppx_driver"
-  "ppx_tools"  {>= "0.99.3"}
+  "ppx_metaquot"
 ]
 available: [ ocaml-version >= "4.03.0" ]
 descr: "

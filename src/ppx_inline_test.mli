@@ -1,4 +1,4 @@
-open Ppx_core.Std
+open Ppx_core
 
 type maybe_drop =
   | Keep
@@ -12,7 +12,7 @@ val maybe_drop : Location.t -> Parsetree.expression -> Parsetree.structure
 
 (**/**)
 
-val validate_tag : string -> (unit, string option) result
+val validate_tag : string -> (unit, string option) Result.t
 
 val opt_name_and_expr
   :  (Parsetree.expression, 'a, 'b) Ast_pattern.t

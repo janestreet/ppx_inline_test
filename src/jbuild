@@ -3,8 +3,8 @@
   (public_name ppx_inline_test)
   (kind ppx_rewriter)
   (ppx_runtime_libraries (ppx_inline_test.runtime-lib))
-  (libraries (compiler-libs.common
+  (libraries (
               ppx_core
               ppx_driver
               ppx_inline_test_libname))
-  (preprocess metaquot)))
+  (preprocess (pps (ppx_metaquot)))))
