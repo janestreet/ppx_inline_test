@@ -9,6 +9,7 @@ build: [
   ["jbuilder" "build-package" "ppx_inline_test" "-j" jobs]
 ]
 depends: [
+  "base"
   "jbuilder"
   "ppx_core"
   "ppx_driver"
