@@ -5,4 +5,6 @@
     (flags (--no-sourcemap))
     (javascript_files (runtime.js))))
   (c_names (am_testing))
+  ;; This dependency is to make sure that Base is linked before this library
+  (libraries (base))
   (preprocess no_preprocessing)))
