@@ -83,10 +83,10 @@ let apply_to_descr lid ~loc ?inner_loc e_opt id_opt tags more_arg =
   maybe_drop loc expr
 ;;
 
-let enabled () =
+let can_use_test_extensions () =
   match !maybe_drop_mode, Ppx_inline_test_libname.get () with
   | Keep, None -> false
-  | _          -> true
+  | (Drop | Drop_with_deadcode), _ | _, Some _ -> true
 ;;
 
 let all_tags = [ "no-js"; "js-only"; "64-bits-only"; "32-bits-only" ]
@@ -98,11 +98,11 @@ let validate_tag tag =
   else
     Ok ()
 
-let check_exn ~loc ~tags =
-  if not (enabled ()) then
+let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
+  if not (can_use_test_extensions ()) then
     Location.raise_errorf ~loc
-      "ppx_inline_test: extension is disabled because the tests would be ignored \
-       (the build system didn't pass -inline-test-lib)";
+      "%s: extension is disabled because the tests would be ignored \
+       (the build system didn't pass -inline-test-lib)" name_of_ppx_rewriter;
   List.iter tags ~f:(fun tag ->
     match validate_tag tag with
     | Ok () -> ()
@@ -112,22 +112,24 @@ let check_exn ~loc ~tags =
         | Some hint -> "\n"^hint
       in
       Location.raise_errorf ~loc
-        "ppx_inline_test: %S is not a valid tag for inline tests.%s" tag hint
+        "%s: %S is not a valid tag for inline tests.%s" name_of_ppx_rewriter tag hint
   )
 ;;
 
+let name_of_ppx_rewriter = "ppx_inline_test"
+
 let expand_test ~loc ~path:_ ~name:id ~tags e =
-  check_exn ~loc ~tags;
+  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test" ~loc (Some e) id tags (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
-  check_exn ~loc ~tags;
+  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test_unit" ~loc (Some e) id tags (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_module ~loc ~path:_ ~name:id ~tags m =
-  check_exn ~loc ~tags;
+  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id tags
     (pexp_fun ~loc Nolabel None (punit ~loc)
        (pexp_letmodule ~loc (Located.mk ~loc "M")
