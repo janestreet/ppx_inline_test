@@ -8,3 +8,5 @@
   ;; This dependency is to make sure that Base is linked before this library
   (libraries (base))
   (preprocess no_preprocessing)))
+
+(jbuild_version jane_street)

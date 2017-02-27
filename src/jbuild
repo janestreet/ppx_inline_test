@@ -8,3 +8,5 @@
               ppx_driver
               ppx_inline_test_libname))
   (preprocess (pps (ppx_metaquot)))))
+
+(jbuild_version jane_street)

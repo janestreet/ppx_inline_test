@@ -1,3 +1,5 @@
 (library
  ((name ppx_inline_test_example_lib)
   (libraries (core))))
+
+(jbuild_version jane_street)
