@@ -1,6 +1,5 @@
 (library
  ((name ppx_inline_test_lib_test)
-  (inline_tests ((native build_but_dont_run)))
   (preprocess (per_file
                ((pps (ppx_inline_test)) (config failures order))
                ((pps (ppx_inline_test_drop)) (drop))

@@ -1,14 +1,12 @@
 ;; This module is linked by jenga at the very end of all the inline tests runners.  jenga
 ;; assumes the existence of ppx_inline_test_runner.ml, and that it does not depend on
 ;; other ml files.
-(executables
- ;; We use long module names to avoid clash in the public release
- ((names (ppx_inline_test_runner))
-  (object_public_name ppx_inline_test.runner)
-  (libraries (ppx_inline_test_lib ppx_inline_test_runner_lib))
-  (js_of_ocaml ())
-  ;; This [preprocess] is to break a cycle in the public release
-  (preprocess (pps ()))))
+(library
+ ((name          ppx_inline_test_runner)
+  (public_name   ppx_inline_test.runner)
+  (libraries     (ppx_inline_test_lib ppx_inline_test_runner_lib))
+  (library_flags (-linkall))
+  (preprocess    (pps ()))))
 
 (provides ppx_inline_test:ppx_inline_test_runner.cmx)
 
