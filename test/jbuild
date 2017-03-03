@@ -10,7 +10,7 @@
 (rule
  ((targets (test.output test-partitions.output diff-with-without-partitions))
   (deps (./inline_tests_runner ./inline_tests_runner.exe))
-  (action "
+  (action (bash "
 function run {
   { OCAMLRUNPARAM= ./inline_tests_runner \"$@\" || echo code: $?; } |&
     sed -r -e '/runtime.ml/ s/[0-9]+/XXX/g'
@@ -27,12 +27,12 @@ run > test.output
 
 diff -u  --label test.output --label test-partitions.output \
   test.output test-partitions.output > diff-with-without-partitions || true
-")))
+"))))
 
 (alias
 ((name runtest)
  (deps (test.expected test.output))
- (action "diff -u test.expected test.output")))
+ (action (bash "diff -u test.expected test.output"))))
 
 (alias
  ((name runtest)
