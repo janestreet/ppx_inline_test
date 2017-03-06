@@ -6,7 +6,7 @@
   (public_name   ppx_inline_test.runner)
   (libraries     (ppx_inline_test_lib ppx_inline_test_runner_lib))
   (library_flags (-linkall))
-  (preprocess    (pps ()))))
+  (preprocess    no_preprocessing)))
 
 (provides ppx_inline_test:ppx_inline_test_runner.cmx)
 
