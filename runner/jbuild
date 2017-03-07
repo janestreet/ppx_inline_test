@@ -8,6 +8,5 @@
   (library_flags (-linkall))
   (preprocess    no_preprocessing)))
 
-(provides ppx_inline_test:ppx_inline_test_runner.cmx)
 
 (jbuild_version jane_street)
