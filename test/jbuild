@@ -38,4 +38,4 @@ diff -u  --label test.output --label test-partitions.output \
  ((name runtest)
   (deps (diff-with-without-partitions))))
 
-(jbuild_version jane_street)
+(jbuild_version 1)
