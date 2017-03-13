@@ -6,4 +6,6 @@
   (libraries (base))
   (preprocess no_preprocessing)))
 
+(install ((section lib) (files (runtime.js))))
+
 (jbuild_version 1)
