@@ -1,3 +1,11 @@
+## v0.9.1
+
+- Use cookies as well as command line options
+
+## v0.9.0
+
+No changelog available
+
 ## 113.33.03
 
 - Changed the runtime API to make it easier to build test runners:
