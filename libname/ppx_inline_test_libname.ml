@@ -7,6 +7,13 @@ let () =
           ppx_inline_test (and ppx_bench) are disabled unless this flag is passed.";
 ;;
 
+let () =
+  Ppx_driver.Cookies.add_simple_handler "library-name" Ppx_core.Ast_pattern.(estring __)
+    ~f:(function
+      | None -> ()
+      | Some lib -> libname := Some lib)
+;;
+
 let get () =
   match !libname with
   | None -> None
