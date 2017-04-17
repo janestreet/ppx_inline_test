@@ -26,6 +26,20 @@ let () =
           unused variable warnings.";
 ;;
 
+let () =
+  Ppx_driver.Cookies.add_simple_handler "inline-test"
+    Ast_pattern.(pexp_ident (lident __'))
+    ~f:(function
+      | None -> ()
+      | Some id ->
+        match id.txt with
+        | "drop" -> maybe_drop_mode := Drop
+        | "drop_with_deadcode" -> maybe_drop_mode := Drop_with_deadcode
+        | s ->
+          Location.raise_errorf ~loc:id.loc
+            "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode"
+            s)
+
 let maybe_drop loc code =
   match !maybe_drop_mode with
   | Keep               -> [%str let () = [%e code]]
