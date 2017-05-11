@@ -1,7 +1,5 @@
----
-title: ppx_inline_test
-parent: ../README.md
----
+ppx_inline_test
+===============
 
 Syntax extension for writing in-line tests in ocaml code.
 
