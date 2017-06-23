@@ -103,7 +103,12 @@ let can_use_test_extensions () =
   | (Drop | Drop_with_deadcode), _ | _, Some _ -> true
 ;;
 
-let all_tags = [ "no-js"; "js-only"; "64-bits-only"; "32-bits-only" ]
+let all_tags =
+  [ "no-js"
+  ; "js-only"
+  ; "64-bits-only"
+  ; "32-bits-only"
+  ; "x-library-inlining-sensitive" ]
 
 let validate_tag tag =
   if not (List.mem all_tags tag ~equal:String.equal)

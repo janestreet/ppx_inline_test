@@ -31,7 +31,6 @@ let parse_argv argv l f msg =
   | Arg.Help msg -> Printf.printf "%s" msg; exit 0
 ;;
 
-type tags = string list
 type descr = string
 let test_modules_ran = ref 0
 let test_modules_failed = ref 0
@@ -46,15 +45,43 @@ type config = (module Inline_test_config.S)
 type 'a test_function_args
    = config:config
   -> descr:descr
-  -> tags:tags
+  -> tags:string list
   -> filename:filename
   -> line_number:line_number
   -> start_pos:start_pos
   -> end_pos:end_pos
   -> 'a
+
+module Tag_predicate = struct
+  type t =
+    { required_tags  : string list
+    ; dropped_tags : string list
+    }
+
+  let enable_everything = { required_tags = []; dropped_tags = [] }
+
+  let drop t tag =
+    { dropped_tags = tag :: t.dropped_tags
+    ; required_tags = List.filter ((<>) tag) t.required_tags
+    }
+
+  let require t tag =
+    { dropped_tags = List.filter ((<>) tag) t.dropped_tags
+    ; required_tags = tag :: t.required_tags
+    }
+
+  let entire_module_disabled t ~partial_tags:tags =
+    List.exists (fun dropped -> List.mem dropped tags) t.dropped_tags
+
+  let disabled t ~complete_tags:tags =
+    List.exists (fun req -> not (List.mem req tags)) t.required_tags
+    || List.exists (fun dropped -> List.mem dropped tags) t.dropped_tags
+end
+
+
 type which_tests =
   { only_test_location : (filename * line_number option * bool ref) list
-  ; do_not_test_tags : tags
+  ; which_tags : Tag_predicate.t
   ; partition : string option
   }
 type test_mode =
@@ -118,7 +145,35 @@ end = struct
   ;;
 end
 
-let module_descr = ref []
+module Module_context = struct
+  module T = struct
+    type one_module =
+      { descr : string
+      ; tags : string list
+      }
+
+    type t = one_module list
+
+    let descr t = List.map (fun m -> m.descr) t
+    let tags t = List.concat (List.map (fun m -> m.tags) t)
+  end
+
+  let current : T.t ref = ref []
+
+  let with_ ~descr ~tags f =
+    let prev = !current in
+    current := { T. descr; tags } :: prev;
+    try
+      f ();
+      current := prev;
+    with e ->
+      current := prev;
+      raise e
+
+  let current_descr () = T.descr !current
+  let current_tags  () = T.tags  !current
+end
+
 let verbose = ref false
 let strict = ref false
 let show_counts = ref false
@@ -171,7 +226,7 @@ let () =
       let tests = ref [] in
       let list_partitions = ref false in
       let partition = ref None in
-      let disabled_tags = ref [] in
+      let tag_predicate = ref Tag_predicate.enable_everything in
       parse_argv (Array.of_list (name :: rest)) (Arg.align [
         "-list-test-names", Arg.Unit (fun () -> list_test_names := true; verbose := true),
         " Do not run tests but show what would have been run";
@@ -188,8 +243,11 @@ let () =
           log := Some (open_out "inline_tests.log")
         ), " Log the tests run in inline_tests.log";
         "-drop-tag", Arg.String (fun s ->
-          disabled_tags := s :: !disabled_tags
-        ), "tag Ignore tests tagged with [tag].";
+          tag_predicate := Tag_predicate.drop !tag_predicate s
+        ), "tag Only run tests not tagged with [tag] (overrides previous -require-tag)";
+        "-require-tag", Arg.String (fun s ->
+          tag_predicate := Tag_predicate.require !tag_predicate s
+        ), "tag Only run tests tagged with [tag] (overrides previous -drop-tag)";
         "-only-test", Arg.String (fun s ->
           let filename, index =
             match parse_descr s with
@@ -234,7 +292,7 @@ let () =
               then `List_partitions
               else
                 `Run_tests { only_test_location = !tests;
-                             do_not_test_tags = !disabled_tags;
+                             which_tags = !tag_predicate;
                              partition = !partition }
           })
     end
@@ -267,20 +325,10 @@ let time f =
   time_sec := Sys.time () -. before_sec;
   res
 
-let with_descr (descr : descr) f =
-  let prev = !module_descr in
-  module_descr := descr :: prev;
-  try
-    time f;
-    module_descr := prev;
-  with e ->
-    module_descr := prev;
-    raise e
-
 let string_of_module_descr () =
   String.concat "" (
     List.map (fun s -> "  in TES" ^ "T_MODULE at " ^ String.uncapitalize_ascii s ^ "\n")
-      !module_descr
+      (Module_context.current_descr ())
   )
 
 let position_match def_filename def_line_number l =
@@ -302,9 +350,6 @@ let position_match def_filename def_line_number l =
     if found then used := true;
     found
   ) l
-
-let not_disabled tags do_not_test_tags =
-  not (List.exists (fun gr -> List.mem gr do_not_test_tags) tags)
 
 let print_delayed_errors () =
   match List.rev !delayed_errors with
@@ -334,49 +379,50 @@ let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_numbe
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match Action.get () with
   | `Test_mode { libname; what_to_do } ->
+    let complete_tags = tags @ Module_context.current_tags () in
     if Some libname = !dynamic_lib then begin
       match what_to_do with
       | `List_partitions -> Partition.found_test ()
-      | `Run_tests { only_test_location; do_not_test_tags; partition } ->
+      | `Run_tests { only_test_location; which_tags; partition } ->
         let should_run =
           begin match only_test_location with
           | [] -> true
           | _ :: _ -> position_match def_filename def_line_number only_test_location
           end
-          && not_disabled tags do_not_test_tags
+          && not (Tag_predicate.disabled which_tags ~complete_tags)
           && Partition.is_current partition
-       in
-       if should_run then begin
-         let descr = descr () in
-         incr tests_ran;
-         begin match !log with
-         | None -> ()
-         | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
-         end;
-         if !verbose then begin
-           Printf.printf "%s%!" descr
-         end;
-         let print_time_taken () =
-           (* If !list_test_names, this is is a harmless zero. *)
-           if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
-         in
-         try
-           let failed = not !list_test_names && not (time f) in
-           print_time_taken ();
-           if failed then begin
-             incr tests_failed;
-             eprintf_or_delay "%s is false.\n%s\n%!" descr
-               (string_of_module_descr ())
-           end
-         with exn ->
-           print_time_taken ();
-           let backtrace = backtrace_indented ~by:2 in
-           incr tests_failed;
-           let exn_str = Printexc.to_string exn in
-           let sep = if String.contains exn_str '\n' then "\n" else " " in
-           eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
-             backtrace (string_of_module_descr ())
-       end
+        in
+        if should_run then begin
+          let descr = descr () in
+          incr tests_ran;
+          begin match !log with
+          | None -> ()
+          | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
+          end;
+          if !verbose then begin
+            Printf.printf "%s%!" descr
+          end;
+          let print_time_taken () =
+            (* If !list_test_names, this is is a harmless zero. *)
+            if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
+          in
+          try
+            let failed = not !list_test_names && not (time f) in
+            print_time_taken ();
+            if failed then begin
+              incr tests_failed;
+              eprintf_or_delay "%s is false.\n%s\n%!" descr
+                (string_of_module_descr ())
+            end
+          with exn ->
+            print_time_taken ();
+            let backtrace = backtrace_indented ~by:2 in
+            incr tests_failed;
+            let exn_str = Printexc.to_string exn in
+            let sep = if String.contains exn_str '\n' then "\n" else " " in
+            eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
+              backtrace (string_of_module_descr ())
+        end
    end
   | `Ignore -> ()
   | `Collect r ->
@@ -441,15 +487,22 @@ let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_lin
     if Some libname = !dynamic_lib then begin
       match what_to_do with
       | `List_partitions -> Partition.found_test ()
-      | `Run_tests { do_not_test_tags; partition; _ } ->
-        (* run test_modules, in case they define the test we are looking for (if we are
-           even looking for a test) *)
-        if not_disabled tags do_not_test_tags
+      | `Run_tests { partition; which_tags; _ } ->
+        (* If, no matter what tags a test defines, we certainly will drop all tests within
+           this module, then don't run the module at all. This means people can write
+           things like the following without breaking the 32-bit build:
+           let%test_module [@tags "64-bits-only"] = (module struct
+             let i = Int64.to_int_exn ....
+           end)
+           We don't shortcut based on position, as we can't tell what positions the
+           inner tests will have. *)
+        let partial_tags = tags @ Module_context.current_tags () in
+        if not (Tag_predicate.entire_module_disabled which_tags ~partial_tags)
         && Partition.is_current partition
         then begin
           incr test_modules_ran;
           let descr = descr () in
-          try with_descr descr f
+          try Module_context.with_ ~descr ~tags (fun () -> time f)
           with exn ->
             let backtrace = backtrace_indented ~by:2 in
             incr test_modules_failed;
