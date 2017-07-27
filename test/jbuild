@@ -1,6 +1,6 @@
 (library
  ((name ppx_inline_test_lib_test)
-  (preprocess (per_file
+  (preprocess (per_module
                ((pps (ppx_inline_test ppx_driver.runner)) (config failures order))
                ((pps (ppx_inline_test_drop ppx_driver.runner)) (drop))
                ))))

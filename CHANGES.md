@@ -1,3 +1,7 @@
+## v0.9.2
+
+- `per_file` --> `per_module` in jbuild files
+
 ## v0.9.1
 
 - Use cookies as well as command line options
