@@ -1,7 +1,12 @@
 (library
  ((name ppx_inline_test_lib_test)
   (preprocess (per_file
-               ((pps (ppx_inline_test ppx_driver.runner)) (config failures order performance_test))
+               ((pps (ppx_inline_test ppx_driver.runner))
+                (config
+                 failures
+                 order
+                 performance_test
+                 file_without_test_module))
                ((pps (ppx_inline_test_drop ppx_driver.runner)) (drop))
                ))))
 
@@ -30,8 +35,13 @@ run > test.output
 
 (
   export DONT_ASSUME_ALL_TESTS_RUN=
-  run -require-tag x-library-inlining-sensitive -verbose > test-inlining.output
-)
+  echo Partitions diff:
+  diff <(run -require-tag x-library-inlining-sensitive -list-partitions) \
+       <(run -list-partitions) || true
+  echo
+  run -require-tag x-library-inlining-sensitive -verbose
+) > test-inlining.output
+
 diff -u  --label test.output --label test-partitions.output \
   test.output test-partitions.output > diff-with-without-partitions || true
 "))))

@@ -80,14 +80,14 @@ end
 
 
 type which_tests =
-  { only_test_location : (filename * line_number option * bool ref) list
+  { libname : string
+  ; only_test_location : (filename * line_number option * bool ref) list
   ; which_tags : Tag_predicate.t
-  ; partition : string option
   }
 type test_mode =
-  { libname : string
+  { which_tests : which_tests
   ; what_to_do :
-      [ `Run_tests of which_tests
+      [ `Run_partition of string option
       | `List_partitions
       ]
   }
@@ -286,14 +286,15 @@ let () =
       ) (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
       Action.set (
         `Test_mode
-          { libname = lib
+          { which_tests =
+              { libname = lib
+              ; only_test_location = !tests;
+                which_tags = !tag_predicate;
+              }
           ; what_to_do =
               if !list_partitions
               then `List_partitions
-              else
-                `Run_tests { only_test_location = !tests;
-                             which_tags = !tag_predicate;
-                             partition = !partition }
+              else `Run_partition !partition
           })
     end
   | _ ->
@@ -378,51 +379,51 @@ let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_numbe
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match Action.get () with
-  | `Test_mode { libname; what_to_do } ->
+  | `Test_mode { which_tests = { libname; only_test_location; which_tags }; what_to_do } ->
     let complete_tags = tags @ Module_context.current_tags () in
-    if Some libname = !dynamic_lib then begin
+    let should_run =
+      Some libname = !dynamic_lib
+      && begin match only_test_location with
+        | [] -> true
+        | _ :: _ -> position_match def_filename def_line_number only_test_location
+      end
+      && not (Tag_predicate.disabled which_tags ~complete_tags)
+    in
+    if should_run then begin
       match what_to_do with
       | `List_partitions -> Partition.found_test ()
-      | `Run_tests { only_test_location; which_tags; partition } ->
-        let should_run =
-          begin match only_test_location with
-          | [] -> true
-          | _ :: _ -> position_match def_filename def_line_number only_test_location
-          end
-          && not (Tag_predicate.disabled which_tags ~complete_tags)
-          && Partition.is_current partition
-        in
-        if should_run then begin
-          let descr = descr () in
-          incr tests_ran;
-          begin match !log with
-          | None -> ()
-          | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
-          end;
-          if !verbose then begin
-            Printf.printf "%s%!" descr
-          end;
-          let print_time_taken () =
-            (* If !list_test_names, this is is a harmless zero. *)
-            if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
-          in
-          try
-            let failed = not !list_test_names && not (time f) in
-            print_time_taken ();
-            if failed then begin
-              incr tests_failed;
-              eprintf_or_delay "%s is false.\n%s\n%!" descr
-                (string_of_module_descr ())
-            end
-          with exn ->
-            print_time_taken ();
-            let backtrace = backtrace_indented ~by:2 in
-            incr tests_failed;
-            let exn_str = Printexc.to_string exn in
-            let sep = if String.contains exn_str '\n' then "\n" else " " in
-            eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
-              backtrace (string_of_module_descr ())
-        end
+      | `Run_partition partition ->
+       if Partition.is_current partition then begin
+         let descr = descr () in
+         incr tests_ran;
+         begin match !log with
+         | None -> ()
+         | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
+         end;
+         if !verbose then begin
+           Printf.printf "%s%!" descr
+         end;
+         let print_time_taken () =
+           (* If !list_test_names, this is is a harmless zero. *)
+           if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
+         in
+         try
+           let failed = not !list_test_names && not (time f) in
+           print_time_taken ();
+           if failed then begin
+             incr tests_failed;
+             eprintf_or_delay "%s is false.\n%s\n%!" descr
+               (string_of_module_descr ())
+           end
+         with exn ->
+           print_time_taken ();
+           let backtrace = backtrace_indented ~by:2 in
+           incr tests_failed;
+           let exn_str = Printexc.to_string exn in
+           let sep = if String.contains exn_str '\n' then "\n" else " " in
+           eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
+             backtrace (string_of_module_descr ())
+       end
    end
   | `Ignore -> ()
   | `Collect r ->
@@ -438,12 +439,12 @@ let set_lib_and_partition static_lib partition =
     dynamic_lib := Some static_lib;
     match Action.get () with
     | `Collect _ | `Ignore -> ()
-    | `Test_mode { libname; what_to_do } ->
-      if libname = static_lib then begin
+    | `Test_mode { which_tests; what_to_do } ->
+      if which_tests.libname = static_lib then begin
         let requires_partition =
           match what_to_do with
-          | `List_partitions | `Run_tests { partition = Some _; _ } -> true
-          | `Run_tests { partition = None; _ } -> false
+          | `List_partitions | `Run_partition (Some _) -> true
+          | `Run_partition None -> false
         in
         if partition = "" && requires_partition
         then failwith "ppx_inline_test: cannot use -list-partition or -partition \
@@ -483,23 +484,25 @@ let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_lin
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
   match Action.get () with
-  | `Test_mode { libname; what_to_do } ->
-    if Some libname = !dynamic_lib then begin
+  | `Test_mode { which_tests = { libname; only_test_location = _; which_tags }; what_to_do } ->
+    let partial_tags = tags @ Module_context.current_tags () in
+    let should_run =
+      Some libname = !dynamic_lib
+      (* If, no matter what tags a test defines, we certainly will drop all tests within
+         this module, then don't run the module at all. This means people can write
+         things like the following without breaking the 32-bit build:
+         let%test_module [@tags "64-bits-only"] = (module struct
+         let i = Int64.to_int_exn ....
+         end)
+         We don't shortcut based on position, as we can't tell what positions the
+         inner tests will have. *)
+      && not (Tag_predicate.entire_module_disabled which_tags ~partial_tags)
+    in
+    if should_run then begin
       match what_to_do with
       | `List_partitions -> Partition.found_test ()
-      | `Run_tests { partition; which_tags; _ } ->
-        (* If, no matter what tags a test defines, we certainly will drop all tests within
-           this module, then don't run the module at all. This means people can write
-           things like the following without breaking the 32-bit build:
-           let%test_module [@tags "64-bits-only"] = (module struct
-             let i = Int64.to_int_exn ....
-           end)
-           We don't shortcut based on position, as we can't tell what positions the
-           inner tests will have. *)
-        let partial_tags = tags @ Module_context.current_tags () in
-        if not (Tag_predicate.entire_module_disabled which_tags ~partial_tags)
-        && Partition.is_current partition
-        then begin
+      | `Run_partition partition ->
+        if Partition.is_current partition then begin
           incr test_modules_ran;
           let descr = descr () in
           try Module_context.with_ ~descr ~tags (fun () -> time f)
@@ -528,7 +531,7 @@ let summarize () =
                       been run. You should use the inline_tests_runner script to run \n\
                       tests.\n%!";
     Test_result.Error
-  | `Test_mode { libname = _ ; what_to_do = `List_partitions } ->
+  | `Test_mode { which_tests = _; what_to_do = `List_partitions } ->
     List.iter (Printf.printf "%s\n") (Partition.all ());
     Test_result.Success
   | (`Test_mode _ | `Collect _ as action) -> begin
@@ -546,7 +549,7 @@ let summarize () =
             match action with
             | `Collect _ -> None
             | `Test_mode { what_to_do = `List_partitions; _ } -> assert false
-            | `Test_mode { what_to_do = `Run_tests { only_test_location; _}; _ } ->
+            | `Test_mode { what_to_do = `Run_partition _; which_tests = { only_test_location; _ }; _ } ->
               let unused_tests =
                 List.filter (fun (_, _, used) -> not !used) only_test_location in
               match unused_tests with
