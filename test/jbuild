@@ -15,8 +15,7 @@
 (rule
  ((targets (test.output
             test-partitions.output
-            test-inlining.output
-            diff-with-without-partitions))
+            test-inlining.output))
   (deps (./inline_tests_runner ./inline_tests_runner.exe))
   (action (bash "
 function run {
@@ -40,11 +39,19 @@ run > test.output
        <(run -list-partitions) || true
   echo
   run -require-tag x-library-inlining-sensitive -verbose
-) > test-inlining.output
+) > test-inlining.output"))))
 
+(rule
+ ((targets (diff-with-without-partitions))
+  (deps (./inline_tests_runner
+         ./inline_tests_runner.exe
+         ./test.output
+         ./test-partitions.output))
+  (action(bash "
 diff -u  --label test.output --label test-partitions.output \
   test.output test-partitions.output > diff-with-without-partitions || true
-"))))
+"))
+  (fallback)))
 
 (alias
 ((name runtest)
