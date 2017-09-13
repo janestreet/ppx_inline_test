@@ -43,10 +43,7 @@ run > test.output
 
 (rule
  ((targets (diff-with-without-partitions))
-  (deps (./inline_tests_runner
-         ./inline_tests_runner.exe
-         ./test.output
-         ./test-partitions.output))
+  (deps (./test.output ./test-partitions.output))
   (action(bash "
 diff -u  --label test.output --label test-partitions.output \
   test.output test-partitions.output > diff-with-without-partitions || true
