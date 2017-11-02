@@ -3,6 +3,7 @@
   (public_name ppx_inline_test)
   (kind ppx_rewriter)
   (ppx_runtime_libraries (ppx_inline_test.runtime-lib))
+  (flags (:standard -safe-string))
   (libraries (
               ppx_core
               ppx_driver

@@ -1,5 +1,6 @@
 (library
  ((name ppx_inline_test_lib_test)
+  (flags (:standard -safe-string))
   (preprocess (per_module
                ((pps (ppx_inline_test ppx_driver.runner))
                 (config
