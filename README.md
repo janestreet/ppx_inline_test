@@ -114,7 +114,7 @@ Building and running the tests outside of jane street
 ----------------------------------------
 
 Code using this extension must be compiled and linked using the
-`ppx_inline_test.runner.lib` library. The `ppx_inline_test` syntax
+`ppx_inline_test.runtime-lib` library. The `ppx_inline_test` syntax
 extension will reject any test if it wasn't passed a `-inline-test-lib
 libname` flag.
 
