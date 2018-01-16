@@ -32,6 +32,7 @@ val testing : bool
 val use_color : bool
 val in_place : bool
 val diff_command : string option
+val source_tree_root : string option
 
 (** [am_running_inline_test] is [true] if the code is running inline tests
     (e.g. [let%expect_test], [let%test], [let%test_unit]) or is in an executable

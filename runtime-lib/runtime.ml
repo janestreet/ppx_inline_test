@@ -188,6 +188,7 @@ let time_sec = ref 0.
 let use_color = ref true
 let in_place  = ref false
 let diff_command = ref None
+let source_tree_root = ref None
 
 let displayed_descr descr filename line start_pos end_pos =
   Printf.sprintf "File %S, line %d, characters %d-%d%s"
@@ -280,6 +281,8 @@ let () =
         "-in-place", Arg.Set in_place, " Update expect tests in place";
         "-diff-cmd", Arg.String (fun s -> diff_command := Some s),
         " Diff command for tests that require diffing";
+        "-source-tree-root", Arg.String (fun s -> source_tree_root := Some s),
+        " Path to the root of the source tree"
       ]) (fun anon ->
         Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
         exit 1
@@ -583,6 +586,7 @@ let summarize () =
 let use_color = !use_color
 let in_place  = !in_place
 let diff_command = !diff_command
+let source_tree_root = !source_tree_root
 
 let evaluators = ref [summarize]
 let add_evaluator ~f = evaluators := f :: !evaluators
