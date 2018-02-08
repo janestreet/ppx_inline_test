@@ -280,7 +280,7 @@ let () =
         "-no-color", Arg.Clear use_color, " Summarize tests without using color";
         "-in-place", Arg.Set in_place, " Update expect tests in place";
         "-diff-cmd", Arg.String (fun s -> diff_command := Some s),
-        " Diff command for tests that require diffing";
+        " Diff command for tests that require diffing (use - to disable diffing)";
         "-allow-output-patterns", Arg.Set allow_output_patterns,
         " Allow output patterns in tests expectations";
       ]) (fun anon ->
