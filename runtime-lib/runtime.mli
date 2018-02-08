@@ -32,6 +32,7 @@ val testing : bool
 val use_color : bool
 val in_place : bool
 val diff_command : string option
+val source_tree_root : string option
 
 (** Allow patterns in tests expectation *)
 val allow_output_patterns : bool
