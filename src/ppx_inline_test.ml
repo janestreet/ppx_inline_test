@@ -103,6 +103,12 @@ let can_use_test_extensions () =
   | (Drop | Drop_with_deadcode), _ | _, Some _ -> true
 ;;
 
+(* Set to [true] when we see a [%testXXX] extension *)
+module Has_tests =
+  Ppx_driver.Create_file_property
+    (struct let name = "ppx_inline_test.has_tests" end)
+    (Bool)
+
 let all_tags =
   [ "no-js"
   ; "js-only"
@@ -118,6 +124,7 @@ let validate_tag tag =
     Ok ()
 
 let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
+  Has_tests.set true;
   if not (can_use_test_extensions ()) then
     Location.raise_errorf ~loc
       "%s: extension is disabled because the tests would be ignored \
