@@ -3,6 +3,8 @@
 - Added command line options needed by ppx_expect in order to work
   with Dune
 
+- Tell the build system via output metadata when a file contains tests
+
 ## 113.33.03
 
 - Changed the runtime API to make it easier to build test runners:
