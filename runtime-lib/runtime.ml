@@ -188,6 +188,8 @@ let time_sec = ref 0.
 let use_color = ref true
 let in_place  = ref false
 let diff_command = ref None
+let source_tree_root = ref None
+let allow_output_patterns = ref false
 
 let displayed_descr descr filename line start_pos end_pos =
   Printf.sprintf "File %S, line %d, characters %d-%d%s"
@@ -279,7 +281,11 @@ let () =
         "-no-color", Arg.Clear use_color, " Summarize tests without using color";
         "-in-place", Arg.Set in_place, " Update expect tests in place";
         "-diff-cmd", Arg.String (fun s -> diff_command := Some s),
-        " Diff command for tests that require diffing";
+        " Diff command for tests that require diffing (use - to disable diffing)";
+        "-allow-output-patterns", Arg.Set allow_output_patterns,
+        " Allow output patterns in tests expectations";
+        "-source-tree-root", Arg.String (fun s -> source_tree_root := Some s),
+        " Path to the root of the source tree"
       ]) (fun anon ->
         Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
         exit 1
@@ -583,6 +589,8 @@ let summarize () =
 let use_color = !use_color
 let in_place  = !in_place
 let diff_command = !diff_command
+let source_tree_root = !source_tree_root
+let allow_output_patterns = !allow_output_patterns
 
 let evaluators = ref [summarize]
 let add_evaluator ~f = evaluators := f :: !evaluators
