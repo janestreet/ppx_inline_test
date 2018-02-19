@@ -1,3 +1,8 @@
+## v0.10.1
+
+- Added command line options needed by ppx_expect in order to work
+  with Dune
+
 ## 113.33.03
 
 - Changed the runtime API to make it easier to build test runners:
