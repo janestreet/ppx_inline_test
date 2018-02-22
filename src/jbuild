@@ -10,7 +10,7 @@
   (preprocess (pps (ppx_metaquot ppx_driver.runner)))
   (inline_tests.backend
    ((runner_libraries (ppx_inline_test.runner.lib))
-    (ocaml_code "Ppx_inline_test_lib.Runtime.exit ()")
+    (gen (echo "let () = Ppx_inline_test_lib.Runtime.exit ();;"))
     (flags (inline-test-runner ${library-name}
              -source-tree-root ${ROOT} -diff-cmd -))))))
 
