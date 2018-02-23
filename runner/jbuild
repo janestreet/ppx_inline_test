@@ -5,7 +5,7 @@
  ((name          ppx_inline_test_runner)
   (public_name   ppx_inline_test.runner)
  (flags (:standard -safe-string))
-  (libraries     (ppx_inline_test_lib ppx_inline_test_runner_lib))
+  (libraries     (ppx_inline_test_lib ppx_inline_test_runner_lib libmain))
   (library_flags (-linkall))
   (preprocess    no_preprocessing)))
 
