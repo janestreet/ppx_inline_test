@@ -321,7 +321,7 @@ let am_running_inline_test =
     | (_ : string) -> true
     | exception Not_found -> false)
 
-let time f =
+let time_without_resetting_random_seeds f =
   let before_sec = Sys.time () in
   let res =
     try f ()
@@ -331,6 +331,14 @@ let time f =
   in
   time_sec := Sys.time () -. before_sec;
   res
+
+let saved_caml_random_state = Caml.Random.State.make [| 100; 200; 300 |]
+let saved_base_random_state = Base.Random.State.make [| 111; 222; 333 |]
+
+let time_and_reset_random_seeds f =
+  Caml.Random.set_state saved_caml_random_state;
+  Base.Random.set_state saved_base_random_state;
+  time_without_resetting_random_seeds f
 
 let string_of_module_descr () =
   String.concat "" (
@@ -414,7 +422,7 @@ let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_numbe
            if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
          in
          try
-           let failed = not !list_test_names && not (time f) in
+           let failed = not !list_test_names && not (time_and_reset_random_seeds f) in
            print_time_taken ();
            if failed then begin
              incr tests_failed;
@@ -433,7 +441,7 @@ let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_numbe
    end
   | `Ignore -> ()
   | `Collect r ->
-    r := (fun () -> if not (time f) then failwith (descr ())) :: !r
+    r := (fun () -> if not (time_and_reset_random_seeds f) then failwith (descr ())) :: !r
 
 let set_lib_and_partition static_lib partition =
   match !dynamic_lib with
@@ -470,14 +478,14 @@ let unset_lib static_lib =
 
 let test_unit ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos f =
   test ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos
-    (fun () -> time f; true)
+    (fun () -> f (); true)
 
 let collect f =
   let prev_action = Action.get () in
   let tests = ref [] in
   Action.set (`Collect tests);
   try
-    time f;
+    f (); (* see comment below about why we don't reset random states *)
     let tests = List.rev !tests in
     Action.set prev_action;
     tests
@@ -511,7 +519,19 @@ let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_lin
         if Partition.is_current partition then begin
           incr test_modules_ran;
           let descr = descr () in
-          try Module_context.with_ ~descr ~tags (fun () -> time f)
+          try
+            Module_context.with_ ~descr ~tags (fun () ->
+              (* We do not reset random states upon entering [let%test_module].
+
+                 Con: Code in test modules can accidentally depend on top-level random
+                 state effects.
+
+                 Pros: (1) We don't reset to the same seed on entering a [let%test_module]
+                 and then a [let%test] inside that module, which could lead to
+                 accidentally randomly generating the same values in some test. (2) Moving
+                 code into and out of [let%test_module] does not change its random seed.
+              *)
+              time_without_resetting_random_seeds f)
           with exn ->
             let backtrace = backtrace_indented ~by:2 in
             incr test_modules_failed;
