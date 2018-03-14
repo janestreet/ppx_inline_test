@@ -1,7 +1,6 @@
 ## v0.10.1
 
-- Added command line options needed by ppx_expect in order to work
-  with Dune
+- Arrange things so that inline tests work with Dune
 
 - Tell the build system via output metadata when a file contains tests
 
