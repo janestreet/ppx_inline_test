@@ -1,4 +1,4 @@
-open Ppx_core
+open Ppxlib
 
 type maybe_drop =
   | Keep

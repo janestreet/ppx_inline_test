@@ -2,13 +2,14 @@
  ((name ppx_inline_test_lib_test)
   (flags (:standard -safe-string))
   (preprocess (per_module
-               ((pps (ppx_inline_test ppx_driver.runner))
+               ((pps (ppx_inline_test ppxlib.runner))
                 (config
                  failures
                  order
                  performance_test
-                 file_without_test_module))
-               ((pps (ppx_inline_test_drop ppx_driver.runner)) (drop))
+                 file_without_test_module
+                 random_state))
+               ((pps (ppx_inline_test_drop ppxlib.runner)) (drop))
                ))))
 
 

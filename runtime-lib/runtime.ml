@@ -336,9 +336,14 @@ let saved_caml_random_state = Caml.Random.State.make [| 100; 200; 300 |]
 let saved_base_random_state = Base.Random.State.make [| 111; 222; 333 |]
 
 let time_and_reset_random_seeds f =
+  let caml_random_state = Caml.Random.get_state () in
+  let base_random_state = Base.Random.State.copy Base.Random.State.default in
   Caml.Random.set_state saved_caml_random_state;
   Base.Random.set_state saved_base_random_state;
-  time_without_resetting_random_seeds f
+  let result = time_without_resetting_random_seeds f in
+  Caml.Random.set_state caml_random_state;
+  Base.Random.set_state base_random_state;
+  result
 
 let string_of_module_descr () =
   String.concat "" (

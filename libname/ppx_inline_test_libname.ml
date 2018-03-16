@@ -1,14 +1,16 @@
+open Ppxlib
+
 let libname = ref None
 
 let () =
-  Ppx_driver.add_arg "-inline-test-lib" (Arg.String (fun s -> libname := Some s))
+  Driver.add_arg "-inline-test-lib" (Arg.String (fun s -> libname := Some s))
     ~doc:" A base name to use for generated identifiers \
           (has to be globally unique in a program).\
           ppx_inline_test (and ppx_bench) are disabled unless this flag is passed.";
 ;;
 
 let () =
-  Ppx_driver.Cookies.add_simple_handler "library-name" Ppx_core.Ast_pattern.(estring __)
+  Driver.Cookies.add_simple_handler "library-name" Ast_pattern.(estring __)
     ~f:(function
       | None -> ()
       | Some lib -> libname := Some lib)

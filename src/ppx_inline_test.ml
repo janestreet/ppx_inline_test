@@ -1,4 +1,5 @@
-open Ppx_core
+open Base
+open Ppxlib
 open Ast_builder.Default
 
 (* Generated code should depend on the environment in scope as little as
@@ -17,17 +18,17 @@ let maybe_drop_mode = ref Keep
 let set_default_maybe_drop x = maybe_drop_mode := x
 
 let () =
-  Ppx_driver.add_arg "-inline-test-drop"
+  Driver.add_arg "-inline-test-drop"
     (Unit (fun () -> maybe_drop_mode := Drop))
     ~doc:" Drop unit tests";
-  Ppx_driver.add_arg "-inline-test-drop-with-deadcode"
+  Driver.add_arg "-inline-test-drop-with-deadcode"
     (Unit (fun () -> maybe_drop_mode := Drop_with_deadcode))
     ~doc:" Drop unit tests by wrapping them inside deadcode to prevent \
           unused variable warnings.";
 ;;
 
 let () =
-  Ppx_driver.Cookies.add_simple_handler "inline-test"
+  Driver.Cookies.add_simple_handler "inline-test"
     Ast_pattern.(pexp_ident (lident __'))
     ~f:(function
       | None -> ()
@@ -103,6 +104,12 @@ let can_use_test_extensions () =
   | (Drop | Drop_with_deadcode), _ | _, Some _ -> true
 ;;
 
+(* Set to [true] when we see a [let%test] or [let%expect_test] etc extension. *)
+module Has_tests =
+  Driver.Create_file_property
+    (struct let name = "ppx_inline_test.has_tests" end)
+    (Bool)
+
 let all_tags =
   [ "no-js"
   ; "js-only"
@@ -113,11 +120,12 @@ let all_tags =
 let validate_tag tag =
   if not (List.mem all_tags tag ~equal:String.equal)
   then
-    Error (Ppx_core.Spellcheck.spellcheck all_tags tag)
+    Error (Spellcheck.spellcheck all_tags tag)
   else
     Ok ()
 
 let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
+  Has_tests.set true;
   if not (can_use_test_extensions ()) then
     Location.raise_errorf ~loc
       "%s: extension is disabled because the tests would be ignored \
@@ -217,7 +225,7 @@ end
 let opt_name_and_expr = E.opt_name_and_expr
 
 let () =
-  Ppx_driver.register_transformation "inline-test"
+  Driver.register_transformation "inline-test"
     ~extensions:E.all
     ~enclose_impl:(fun loc ->
       match loc, Ppx_inline_test_libname.get () with
