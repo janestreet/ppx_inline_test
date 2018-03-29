@@ -1,7 +1,6 @@
 (library
  ((name ppx_inline_test_libname)
   (public_name ppx_inline_test.libname)
-  (flags (:standard -safe-string))
   (libraries (ppxlib))
   (preprocess no_preprocessing)))
 
