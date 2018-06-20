@@ -222,6 +222,7 @@ module E = struct
     ]
 end
 
+let tags = E.tags
 let opt_name_and_expr = E.opt_name_and_expr
 
 let () =
