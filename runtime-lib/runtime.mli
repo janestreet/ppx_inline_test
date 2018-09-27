@@ -28,7 +28,11 @@ val summarize : unit -> Test_result.t
 
 (** These values are meant to be used inside a user's tests. *)
 val collect : (unit -> unit) -> (unit -> unit) list
-val testing : bool
+
+(** [`Am_test_runner] means the [./inline_tests_runner] process, whereas
+    [`Am_child_of_test_runner] means a process descended from the test runner. *)
+val testing : [ `Not_testing | `Testing of [ `Am_test_runner | `Am_child_of_test_runner ]]
+
 val use_color : bool
 val in_place : bool
 val diff_command : string option

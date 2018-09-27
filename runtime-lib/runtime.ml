@@ -306,20 +306,21 @@ let () =
   | _ ->
     ()
 
-let testing =
-  match Action.get () with
-  | `Test_mode _ -> true
-  | `Ignore -> false
-  | `Collect _ -> assert false
-
 let am_running_inline_test_env_var = "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST"
 
-let am_running_inline_test =
-  testing
-  || (
+let testing =
+  match Action.get () with
+  | `Test_mode _ -> `Testing `Am_test_runner
+  | `Collect _ -> assert false
+  | `Ignore ->
     match Sys.getenv am_running_inline_test_env_var with
-    | (_ : string) -> true
-    | exception Not_found -> false)
+    | (_ : string) -> `Testing `Am_child_of_test_runner
+    | exception Not_found -> `Not_testing
+
+let am_running_inline_test =
+  match testing with
+  | `Testing (`Am_test_runner | `Am_child_of_test_runner) -> true
+  | `Not_testing -> false
 
 let time_without_resetting_random_seeds f =
   let before_sec = Sys.time () in
