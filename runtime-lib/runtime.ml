@@ -306,21 +306,35 @@ let () =
   | _ ->
     ()
 
-let am_running_inline_test_env_var = "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST"
+let am_test_runner =
+  match Action.get () with
+  | `Test_mode _ -> true
+  | `Collect _ -> assert false
+  | `Ignore -> false
+
+let am_running_inline_test_env_var =
+  (* for approximate compatibility, given that the variable is not exactly equivalent
+     to what PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST used to be *)
+  "TESTING_FRAMEWORK"
+
+(* This value is deprecated in principle, in favor of Core_kernel.am_running_test, so
+   we're going to live with the ugly pattern match. *)
+let am_running_inline_test =
+  match Sys.getenv "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST" with
+  | (_ : string) -> true (* for compatibility with people setting this variable directly *)
+  | exception Not_found ->
+    match Sys.getenv am_running_inline_test_env_var with
+    | "inline-test" -> true
+    | exception Not_found -> false
+    | _ -> false
 
 let testing =
-  match Action.get () with
-  | `Test_mode _ -> `Testing `Am_test_runner
-  | `Collect _ -> assert false
-  | `Ignore ->
-    match Sys.getenv am_running_inline_test_env_var with
-    | (_ : string) -> `Testing `Am_child_of_test_runner
-    | exception Not_found -> `Not_testing
-
-let am_running_inline_test =
-  match testing with
-  | `Testing (`Am_test_runner | `Am_child_of_test_runner) -> true
-  | `Not_testing -> false
+  if am_test_runner
+  then `Testing `Am_test_runner
+  else
+    (if am_running_inline_test
+     then `Testing `Am_child_of_test_runner
+     else `Not_testing)
 
 let time_without_resetting_random_seeds f =
   let before_sec = Sys.time () in

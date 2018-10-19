@@ -43,8 +43,7 @@ val allow_output_patterns : bool
 
 (** [am_running_inline_test] is [true] if the code is running inline tests
     (e.g. [let%expect_test], [let%test], [let%test_unit]) or is in an executable
-    invoked from inline tests.  The latter is arranged by setting an environment
-    variable, see [Core.Am_running_inline_test]. *)
+    invoked from inline tests. *)
 val am_running_inline_test : bool
 val am_running_inline_test_env_var : string
 
