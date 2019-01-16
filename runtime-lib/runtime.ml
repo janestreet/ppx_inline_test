@@ -347,14 +347,14 @@ let time_without_resetting_random_seeds f =
   time_sec := Sys.time () -. before_sec;
   res
 
-let saved_caml_random_state = Caml.Random.State.make [| 100; 200; 300 |]
-let saved_base_random_state = Base.Random.State.make [| 111; 222; 333 |]
+let saved_caml_random_state = lazy (Caml.Random.State.make [| 100; 200; 300 |])
+let saved_base_random_state = lazy (Base.Random.State.make [| 111; 222; 333 |])
 
 let time_and_reset_random_seeds f =
   let caml_random_state = Caml.Random.get_state () in
   let base_random_state = Base.Random.State.copy Base.Random.State.default in
-  Caml.Random.set_state saved_caml_random_state;
-  Base.Random.set_state saved_base_random_state;
+  Caml.Random.set_state (Lazy.force saved_caml_random_state);
+  Base.Random.set_state (Lazy.force saved_base_random_state);
   let result = time_without_resetting_random_seeds f in
   Caml.Random.set_state caml_random_state;
   Base.Random.set_state base_random_state;
