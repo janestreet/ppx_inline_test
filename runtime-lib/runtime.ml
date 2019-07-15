@@ -237,7 +237,8 @@ let () =
         "-partition", Arg.String (fun i -> partition := Some i),
         " Only run the tests in the given partition";
         "-verbose", Arg.Set verbose, " Show the tests as they run";
-        "-stop-on-error", Arg.Set stop_on_error, " Run tests only up to the first error";
+        "-stop-on-error", Arg.Set stop_on_error, " Run tests only up to the first error \
+                                                  (doesn't work for expect tests)";
         "-strict", Arg.Set strict, " End with an error if no tests were run";
         "-show-counts", Arg.Set show_counts, " Show the number of tests ran";
         "-log", Arg.Unit (fun () ->
