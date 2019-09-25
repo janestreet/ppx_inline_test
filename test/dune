@@ -11,7 +11,7 @@
   (bash
     "\
    \nfunction run {\
-   \n  { OCAMLRUNPARAM= ./inline_tests_runner \"$@\" || echo code: $?; } |&\
+   \n  { OCAMLRUNPARAM=b=0 ./inline_tests_runner \"$@\" || echo code: $?; } |&\
    \n    sed -r -e '/runtime.ml/ s/[0-9]+/XXX/g' -e 's/\\([0-9.]* sec\\)/(XXX sec)/'\
    \n}\
    \nrun > test.output\
