@@ -115,7 +115,9 @@ let all_tags =
   ; "js-only"
   ; "64-bits-only"
   ; "32-bits-only"
-  ; "x-library-inlining-sensitive" ]
+  ; "fast-flambda"
+  ; "x-library-inlining-sensitive"
+  ]
 
 let validate_tag tag =
   if not (List.mem all_tags tag ~equal:String.equal)
