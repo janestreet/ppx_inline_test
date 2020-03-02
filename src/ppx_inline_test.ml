@@ -40,9 +40,8 @@ let () =
           Location.raise_errorf ~loc:id.loc
             "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode"
             s)
-;;
 
-(* Same as above, but for the standard one passed by dune *)
+(* Same as above, but for the Dune setting *)
 let () =
   Driver.Cookies.add_simple_handler "inline_tests"
     Ast_pattern.(estring __')
