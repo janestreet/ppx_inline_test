@@ -337,16 +337,16 @@ let testing =
      then `Testing `Am_child_of_test_runner
      else `Not_testing)
 
+let wall_time_clock_ns () =
+  Time_now.nanoseconds_since_unix_epoch ()
+
+
 let time_without_resetting_random_seeds f =
-  let before_sec = Sys.time () in
-  let res =
-    try f ()
-    with e ->
-      time_sec := Sys.time () -. before_sec;
-      raise e
-  in
-  time_sec := Sys.time () -. before_sec;
-  res
+  let before_ns = wall_time_clock_ns () in
+  Base.Exn.protect ~finally:(fun[@inline] () ->
+    time_sec := Base.Int63.(wall_time_clock_ns () - before_ns |> to_float)  /. 1e9)
+    ~f
+
 
 let saved_caml_random_state = lazy (Caml.Random.State.make [| 100; 200; 300 |])
 let saved_base_random_state = lazy (Base.Random.State.make [| 111; 222; 333 |])
