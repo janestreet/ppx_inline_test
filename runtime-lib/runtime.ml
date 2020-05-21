@@ -409,7 +409,7 @@ let eprintf_or_delay fmt =
 let add_hooks ((module C) : config) f =
   fun () -> C.pre_test_hook (); f ()
 
-let test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
+let[@inline never] test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
       ~start_pos ~end_pos f =
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
@@ -514,7 +514,7 @@ let collect f =
     Action.set prev_action;
     raise e
 
-let test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
+let[@inline never] test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
       ~start_pos ~end_pos f =
   let f = add_hooks config f in
   let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
