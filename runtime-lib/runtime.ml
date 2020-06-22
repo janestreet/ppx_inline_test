@@ -82,6 +82,7 @@ end
 type which_tests =
   { libname : string
   ; only_test_location : (filename * line_number option * bool ref) list
+  ; name_filter : string list
   ; which_tags : Tag_predicate.t
   }
 type test_mode =
@@ -227,6 +228,7 @@ let () =
       let list_partitions = ref false in
       let partition = ref None in
       let tag_predicate = ref Tag_predicate.enable_everything in
+      let name_filter = ref [] in
       parse_argv (Array.of_list (name :: rest)) (Arg.align [
         "-list-test-names", Arg.Unit (fun () -> list_test_names := true; verbose := true),
         " Do not run tests but show what would have been run";
@@ -249,6 +251,8 @@ let () =
         "-require-tag", Arg.String (fun s ->
           tag_predicate := Tag_predicate.require !tag_predicate s
         ), "tag Only run tests tagged with [tag] (overrides previous -drop-tag)";
+        "-matching", Arg.String (fun s -> name_filter := s :: !name_filter),
+        "substring Only run tests whose names contain the given substring";
         "-only-test", Arg.String (fun s ->
           let filename, index =
             match parse_descr s with
@@ -295,6 +299,7 @@ let () =
               { libname = lib
               ; only_test_location = !tests;
                 which_tags = !tag_predicate;
+                name_filter = !name_filter
               }
           ; what_to_do =
               if !list_partitions
@@ -384,6 +389,12 @@ let position_match def_filename def_line_number l =
     found
   ) l
 
+let name_filter_match ~name_filter descr =
+  match name_filter with
+  | [] -> true
+  | _ :: _ ->
+    List.exists (fun substring -> Base.String.is_substring ~substring descr) name_filter
+
 let print_delayed_errors () =
   match List.rev !delayed_errors with
   | [] -> ()
@@ -410,9 +421,9 @@ let[@inline never] test ~config ~descr ~tags ~filename:def_filename ~line_number
       ~start_pos ~end_pos f =
   match Action.get () with
   | `Ignore -> ()
-  | `Test_mode { which_tests = { libname; only_test_location; which_tags }; what_to_do } ->
+  | `Test_mode { which_tests = { libname; only_test_location; which_tags; name_filter }; what_to_do } ->
     let f = add_hooks config f in
-    let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
+    let descr = lazy (displayed_descr descr def_filename def_line_number start_pos end_pos) in
     let complete_tags = tags @ Module_context.current_tags () in
     let should_run =
       Some libname = !dynamic_lib
@@ -421,13 +432,14 @@ let[@inline never] test ~config ~descr ~tags ~filename:def_filename ~line_number
         | _ :: _ -> position_match def_filename def_line_number only_test_location
       end
       && not (Tag_predicate.disabled which_tags ~complete_tags)
+      && name_filter_match ~name_filter (Lazy.force descr)
     in
     if should_run then begin
       match what_to_do with
       | `List_partitions -> Partition.found_test ()
       | `Run_partition partition ->
        if Partition.is_current partition then begin
-         let descr = descr () in
+         let descr = Lazy.force descr in
          incr tests_ran;
          begin match !log with
          | None -> ()
@@ -500,7 +512,7 @@ let[@inline never] test_module ~config ~descr ~tags ~filename:def_filename ~line
       ~start_pos ~end_pos f =
   match Action.get () with
   | `Ignore -> ()
-  | `Test_mode { which_tests = { libname; only_test_location = _; which_tags }; what_to_do } ->
+  | `Test_mode { which_tests = { libname; only_test_location = _; name_filter = _; which_tags }; what_to_do } ->
     let f = add_hooks config f in
     let descr () = displayed_descr descr def_filename def_line_number start_pos end_pos in
     let partial_tags = tags @ Module_context.current_tags () in
