@@ -128,12 +128,12 @@ are a few working example using oasis in the
 
 ### Execution
 
-Tests are executed when the executable containing the tests is called with command line
-arguments:
+Tests are ignored, unless both these conditions are met:
+
+- the executable containing the tests is linked with `ppx_inline_test.runner.lib`
+- the executable containing the tests is called with command line arguments:
 
     your.exe inline-test-runner libname [options]
-
-otherwise they are ignored.
 
 This `libname` is a way of restricting the tests run by the executable. The dependencies
 of your library (or executable) could also use `ppx_inline_test`, but you don't
