@@ -178,7 +178,7 @@ let expand_test_module ~loc ~path:_ ~name:id ~tags m =
   validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id tags
     (pexp_fun ~loc Nolabel None (punit ~loc)
-       (pexp_letmodule ~loc (Located.mk ~loc "M")
+       (pexp_letmodule ~loc (Located.mk ~loc (Some "M"))
           m
           (eunit ~loc)))
 ;;
