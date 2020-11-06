@@ -200,8 +200,8 @@ module E = struct
     | Some x -> x
 
   let opt_name () =
-         map (pstring __) ~f:(fun f x -> f (Some x))
-     ||| map ppat_any     ~f:(fun f   -> f None)
+    map (pstring __) ~f:(fun f x -> f (Some x))
+    ||| map ppat_any     ~f:(fun f   -> f None)
 
   let opt_name_and_expr expr =
     pstr ((
