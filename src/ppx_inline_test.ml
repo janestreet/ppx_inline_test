@@ -165,16 +165,19 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
 let name_of_ppx_rewriter = "ppx_inline_test"
 
 let expand_test ~loc ~path:_ ~name:id ~tags e =
+  let loc = { loc with loc_ghost = true } in
   validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test" ~loc (Some e) id tags (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
+  let loc = { loc with loc_ghost = true } in
   validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test_unit" ~loc (Some e) id tags (pexp_fun ~loc Nolabel None (punit ~loc) e)
 ;;
 
 let expand_test_module ~loc ~path:_ ~name:id ~tags m =
+  let loc = { loc with loc_ghost = true } in
   validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test_module" ~loc ~inner_loc:m.pmod_loc None id tags
     (pexp_fun ~loc Nolabel None (punit ~loc)
@@ -251,6 +254,7 @@ let () =
       match loc, Ppx_inline_test_libname.get () with
       | None, _ | _, None -> ([], [])
       | Some loc, Some (libname, partition) ->
+        let loc = { loc with loc_ghost = true } in
         (* See comment in benchmark_accumulator.ml *)
         let header =
           let loc = { loc with loc_end = loc.loc_start } in
