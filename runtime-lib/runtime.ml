@@ -464,7 +464,7 @@ let[@inline never] test ~config ~descr ~tags ~filename:def_filename ~line_number
             print_time_taken ();
             let backtrace = backtrace_indented ~by:2 in
             incr tests_failed;
-            let exn_str = Printexc.to_string exn in
+            let exn_str = Sexplib0.Sexp_conv.printexc_prefer_sexp exn in
             let sep = if String.contains exn_str '\n' then "\n" else " " in
             eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
               backtrace (string_of_module_descr ())
@@ -551,7 +551,7 @@ let[@inline never] test_module ~config ~descr ~tags ~filename:def_filename ~line
           with exn ->
             let backtrace = backtrace_indented ~by:2 in
             incr test_modules_failed;
-            let exn_str = Printexc.to_string exn in
+            let exn_str = Sexplib0.Sexp_conv.printexc_prefer_sexp exn in
             let sep = if String.contains exn_str '\n' then "\n" else " " in
             eprintf_or_delay ("TES" ^^ "T_MODULE at %s threw%s%s.\n%s%s\n%!")
               (String.uncapitalize_ascii descr) sep exn_str backtrace (string_of_module_descr ())
