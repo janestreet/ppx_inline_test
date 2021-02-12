@@ -115,16 +115,22 @@ The full set of tests are run when building the jenga `runtest` alias.
 Building and running the tests outside of jane street
 ----------------------------------------
 
-Code using this extension must be compiled and linked using the
-`ppx_inline_test.runtime-lib` library. The `ppx_inline_test` syntax
-extension will reject any test if it wasn't passed a `-inline-test-lib
-libname` flag.
+To use this with dune, see [dune's documentation](https://dune.readthedocs.io/en/latest/tests.html).
 
-To integrate this in your build system, you should look at the
-instruction provided for
-[the ppx\_driver ocamlbuild plugin](https://github.com/janestreet/ppx_driver). There
-are a few working example using oasis in the
-[Jane Street tests](https://github.com/janestreet/jane-street-tests).
+At the time of writing of the current document, the short version is:
+define a library this way:
+
+    (library
+     (name foo)
+     (inline_tests)
+     (preprocess (pps ppx_inline_test)))
+
+add tests to it, and call `dune runtest`.
+
+If you use some other build system, code using this extension must be
+compiled and linked using the `ppx_inline_test.runtime-lib`
+library. The `ppx_inline_test` syntax extension will reject any test
+if it wasn't passed a `-inline-test-lib libname` flag.
 
 ### Execution
 

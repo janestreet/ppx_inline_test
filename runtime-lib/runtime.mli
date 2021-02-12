@@ -10,7 +10,7 @@ end
 
 type config = (module Inline_test_config.S)
 type 'a test_function_args
-   = config:config
+  = config:config
   -> descr:string
   -> tags:string list
   -> filename:string

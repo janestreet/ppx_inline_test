@@ -43,7 +43,7 @@ type start_pos = int
 type end_pos = int
 type config = (module Inline_test_config.S)
 type 'a test_function_args
-   = config:config
+  = config:config
   -> descr:descr
   -> tags:string list
   -> filename:filename
@@ -197,10 +197,10 @@ let parse_descr str =
   try Some (Scanf.sscanf str " File %S , line %d , characters %d - %d %!"
               (fun file line _start_pos _end_pos -> file, Some line))
   with _ ->
-    try Some (Scanf.sscanf str " File %S , line %d %!" (fun file line -> file, Some line))
-    with _ ->
-      try Some (Scanf.sscanf str " File %S %!" (fun file -> file, None))
-      with _ -> None
+  try Some (Scanf.sscanf str " File %S , line %d %!" (fun file line -> file, Some line))
+  with _ ->
+  try Some (Scanf.sscanf str " File %S %!" (fun file -> file, None))
+  with _ -> None
 
 let indent ~by = function
   | "" -> ""
@@ -375,15 +375,15 @@ let position_match def_filename def_line_number l =
       String.length def_filename - String.length filename in
     let found =
       position_start >= 0 &&
-        let end_of_def_filename =
-          String.sub def_filename
-            position_start
-            (String.length filename) in
-        end_of_def_filename = filename
-        && (position_start = 0 || def_filename.[position_start - 1] = '/')
-        && (match line_number_opt with
-            | None -> true
-            | Some line_number -> def_line_number = line_number)
+      let end_of_def_filename =
+        String.sub def_filename
+          position_start
+          (String.length filename) in
+      end_of_def_filename = filename
+      && (position_start = 0 || def_filename.[position_start - 1] = '/')
+      && (match line_number_opt with
+        | None -> true
+        | Some line_number -> def_line_number = line_number)
     in
     if found then used := true;
     found
@@ -418,7 +418,7 @@ let add_hooks ((module C) : config) f =
   fun () -> C.pre_test_hook (); f ()
 
 let[@inline never] test ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
-      ~start_pos ~end_pos f =
+                     ~start_pos ~end_pos f =
   match Action.get () with
   | `Ignore -> ()
   | `Test_mode { which_tests = { libname; only_test_location; which_tags; name_filter }; what_to_do } ->
@@ -438,38 +438,38 @@ let[@inline never] test ~config ~descr ~tags ~filename:def_filename ~line_number
       match what_to_do with
       | `List_partitions -> Partition.found_test ()
       | `Run_partition partition ->
-       if Partition.is_current partition then begin
-         let descr = Lazy.force descr in
-         incr tests_ran;
-         begin match !log with
-         | None -> ()
-         | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
-         end;
-         if !verbose then begin
-           Printf.printf "%s%!" descr
-         end;
-         let print_time_taken () =
-           (* If !list_test_names, this is is a harmless zero. *)
-           if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
-         in
-         try
-           let failed = not !list_test_names && not (time_and_reset_random_seeds f) in
-           print_time_taken ();
-           if failed then begin
-             incr tests_failed;
-             eprintf_or_delay "%s is false.\n%s\n%!" descr
-               (string_of_module_descr ())
-           end
-         with exn ->
-           print_time_taken ();
-           let backtrace = backtrace_indented ~by:2 in
-           incr tests_failed;
-           let exn_str = Printexc.to_string exn in
-           let sep = if String.contains exn_str '\n' then "\n" else " " in
-           eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
-             backtrace (string_of_module_descr ())
-       end
-   end
+        if Partition.is_current partition then begin
+          let descr = Lazy.force descr in
+          incr tests_ran;
+          begin match !log with
+          | None -> ()
+          | Some ch -> Printf.fprintf ch "%s\n%s" descr (string_of_module_descr ())
+          end;
+          if !verbose then begin
+            Printf.printf "%s%!" descr
+          end;
+          let print_time_taken () =
+            (* If !list_test_names, this is is a harmless zero. *)
+            if !verbose then Printf.printf " (%.3f sec)\n%!" !time_sec;
+          in
+          try
+            let failed = not !list_test_names && not (time_and_reset_random_seeds f) in
+            print_time_taken ();
+            if failed then begin
+              incr tests_failed;
+              eprintf_or_delay "%s is false.\n%s\n%!" descr
+                (string_of_module_descr ())
+            end
+          with exn ->
+            print_time_taken ();
+            let backtrace = backtrace_indented ~by:2 in
+            incr tests_failed;
+            let exn_str = Sexplib0.Sexp_conv.printexc_prefer_sexp exn in
+            let sep = if String.contains exn_str '\n' then "\n" else " " in
+            eprintf_or_delay "%s threw%s%s.\n%s%s\n%!" descr sep exn_str
+              backtrace (string_of_module_descr ())
+        end
+    end
 
 let set_lib_and_partition static_lib partition =
   match !dynamic_lib with
@@ -509,7 +509,7 @@ let test_unit ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos f 
     (fun () -> f (); true)
 
 let[@inline never] test_module ~config ~descr ~tags ~filename:def_filename ~line_number:def_line_number
-      ~start_pos ~end_pos f =
+                     ~start_pos ~end_pos f =
   match Action.get () with
   | `Ignore -> ()
   | `Test_mode { which_tests = { libname; only_test_location = _; name_filter = _; which_tags }; what_to_do } ->
@@ -551,7 +551,7 @@ let[@inline never] test_module ~config ~descr ~tags ~filename:def_filename ~line
           with exn ->
             let backtrace = backtrace_indented ~by:2 in
             incr test_modules_failed;
-            let exn_str = Printexc.to_string exn in
+            let exn_str = Sexplib0.Sexp_conv.printexc_prefer_sexp exn in
             let sep = if String.contains exn_str '\n' then "\n" else " " in
             eprintf_or_delay ("TES" ^^ "T_MODULE at %s threw%s%s.\n%s%s\n%!")
               (String.uncapitalize_ascii descr) sep exn_str backtrace (string_of_module_descr ())
