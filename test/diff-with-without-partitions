@@ -6,12 +6,12 @@
  File "failures.ml", line 4, characters 0-18: <<false>> is false.
  
  File "failures.ml", line 5, characters 0-29: name1 threw Exit.
-@@ -16,5 +18,10 @@
+@@ -18,5 +20,10 @@
  
- TEST_MODULE at file "failures.ml", line 14, characters 0-60 threw Exit.
+ File "failures.ml", line 18, characters 0-30: name4 is false.
  
--FAILED 5 / 27 tests, 2 TEST_MODULES
-+FAILED 5 / 5 tests, 2 TEST_MODULES
+-FAILED 6 / 28 tests, 2 TEST_MODULES
++FAILED 6 / 6 tests, 2 TEST_MODULES
  code: 2
 +Test for partition file_without_test_module:
 +Test for partition order:

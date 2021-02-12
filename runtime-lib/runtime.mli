@@ -11,7 +11,7 @@ end
 type config = (module Inline_test_config.S)
 type 'a test_function_args
   = config:config
-  -> descr:string
+  -> descr:string Lazy.t
   -> tags:string list
   -> filename:string
   -> line_number:int
