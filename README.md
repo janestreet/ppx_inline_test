@@ -134,12 +134,12 @@ if it wasn't passed a `-inline-test-lib libname` flag.
 
 ### Execution
 
-Tests are executed when the executable containing the tests is called with command line
-arguments:
+Tests are ignored, unless both these conditions are met:
+
+- the executable containing the tests is linked with `ppx_inline_test.runner.lib`
+- the executable containing the tests is called with command line arguments:
 
     your.exe inline-test-runner libname [options]
-
-otherwise they are ignored.
 
 This `libname` is a way of restricting the tests run by the executable. The dependencies
 of your library (or executable) could also use `ppx_inline_test`, but you don't
@@ -148,9 +148,21 @@ necessarily want to run their tests too. For instance, `core` is built by giving
 core_extended`. And now when an executable linked with both `core` and `core_extended` is
 run with a `libname` of `core_extended`, only the tests of `core_extended` are run.
 
-Finally, after running tests, `Ppx_inline_test_lib.Runtime.exit ()` should be called
-(to exit with an error and a summary of the number of failed tests if there were errors or
-exit normally otherwise).
+Finally, after running tests, `Ppx_inline_test_lib.Runtime.exit ()`
+should be called (to exit with an error and a summary of the number of
+failed tests if there were errors or exit normally otherwise).
+
+One can construct a standalone, dual-use binary that only runs the
+tests when prompted to (through the command line), by sticking the
+following piece of code in it:
+
+```
+
+match Ppx_inline_test_lib.Runtime.testing with
+    | `Not_testing -> ()
+    | `Testing _ -> print_endline "Exiting test suite"; Ppx_inline_test_lib.Runtime.exit ();;
+
+```
 
 Command line arguments
 ----------------------
