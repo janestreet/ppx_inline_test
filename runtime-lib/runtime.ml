@@ -336,9 +336,10 @@ let time_without_resetting_random_seeds f =
   let res =
     (* To avoid noise in backtraces, we do two things.
 
-       We use [where_to_cut_backtrace] above to remove the part of the stack that leads to
-       the current function, as it's not of any interest to the user, since it's not
-       talking about their test but instead talking about the ppx_inline_test machinery.
+       We use [where_to_cut_backtrace] above to remove the stack frames for the current
+       function and any function it gets inlined into, as it's not of any interest to the
+       user, since it's not talking about their test but instead talking about the
+       ppx_inline_test machinery.
 
        We also avoid inserting any code between the [f] that comes from the user's file
        and grabbing the backtrace from its exceptions (no wrapping of [f] with high order
