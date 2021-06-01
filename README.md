@@ -115,12 +115,15 @@ Building and running the tests outside of jane street with dune
 
 To use this with dune, see [dune's documentation](https://dune.readthedocs.io/en/latest/tests.html).
 At the time of writing of the current document, the short version is:
-define a library this way:
-    (library
-     (name foo)
-     (inline_tests)
-     (preprocess (pps ppx_inline_test)))
-add tests to it, and call `dune runtest`.
+* define a library this way:
+```lisp
+(library
+  (name foo)
+  (inline_tests)
+  (preprocess (pps ppx_inline_test)))
+```
+* add tests to it
+* call `dune runtest`
 
 Building and running the tests outside of jane street without dune
 ----------------------------------------
