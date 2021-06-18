@@ -305,7 +305,7 @@ let am_running_inline_test_env_var =
      to what PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST used to be *)
   "TESTING_FRAMEWORK"
 
-(* This value is deprecated in principle, in favor of Core_kernel.am_running_test, so
+(* This value is deprecated in principle, in favor of Core.am_running_test, so
    we're going to live with the ugly pattern match. *)
 let am_running_inline_test =
   match Sys.getenv "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST" with
@@ -351,16 +351,16 @@ let time_without_resetting_random_seeds f =
   res
 
 
-let saved_caml_random_state = lazy (Caml.Random.State.make [| 100; 200; 300 |])
+let saved_caml_random_state = lazy (Stdlib.Random.State.make [| 100; 200; 300 |])
 let saved_base_random_state = lazy (Base.Random.State.make [| 111; 222; 333 |])
 
 let time_and_reset_random_seeds f =
-  let caml_random_state = Caml.Random.get_state () in
+  let caml_random_state = Stdlib.Random.get_state () in
   let base_random_state = Base.Random.State.copy Base.Random.State.default in
-  Caml.Random.set_state (Lazy.force saved_caml_random_state);
+  Stdlib.Random.set_state (Lazy.force saved_caml_random_state);
   Base.Random.set_state (Lazy.force saved_base_random_state);
   let result = time_without_resetting_random_seeds f in
-  Caml.Random.set_state caml_random_state;
+  Stdlib.Random.set_state caml_random_state;
   Base.Random.set_state base_random_state;
   result
 
