@@ -1,16 +1,19 @@
 
 module Test_result : sig
-  type t = Success | Failure | Error
+  type t =
+    | Success
+    | Failure
+    | Error
 
   val combine : t -> t -> t
   val combine_all : t list -> t
-
   val to_string : t -> string
 end
 
 type config = (module Inline_test_config.S)
-type 'a test_function_args
-  = config:config
+
+type 'a test_function_args =
+  config:config
   -> descr:string Lazy.t
   -> tags:string list
   -> filename:string
@@ -18,6 +21,7 @@ type 'a test_function_args
   -> start_pos:int
   -> end_pos:int
   -> 'a
+
 val set_lib_and_partition : string -> string -> unit
 val unset_lib : string -> unit
 val test : ((unit -> bool) -> unit) test_function_args
@@ -27,7 +31,8 @@ val test_module : ((unit -> unit) -> unit) test_function_args
 
 (** [`Am_test_runner] means the [./inline_tests_runner] process, whereas
     [`Am_child_of_test_runner] means a process descended from the test runner. *)
-val testing : [ `Not_testing | `Testing of [ `Am_test_runner | `Am_child_of_test_runner ]]
+val testing
+  : [ `Not_testing | `Testing of [ `Am_test_runner | `Am_child_of_test_runner ] ]
 
 val use_color : bool
 val in_place : bool
@@ -41,6 +46,7 @@ val allow_output_patterns : bool
     (e.g. [let%expect_test], [let%test], [let%test_unit]) or is in an executable
     invoked from inline tests. *)
 val am_running_inline_test : bool
+
 val am_running_inline_test_env_var : string
 
 (** Record an evaluator for an external set of tests *)

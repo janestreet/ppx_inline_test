@@ -5,8 +5,10 @@ let%test_module _ =
 
     module Inline_test_config = struct
       include Inline_test_config
+
       let pre_test_hook () = Lazy.force init
     end
 
     let%test _ = !x = 42
   end)
+;;
