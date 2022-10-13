@@ -206,7 +206,8 @@ let diff_command = ref None
 let source_tree_root = ref None
 let allow_output_patterns = ref false
 
-let displayed_descr (lazy descr) filename line start_pos end_pos =
+let displayed_descr descr filename line start_pos end_pos =
+  let (lazy descr) = descr in
   Printf.sprintf
     "File %S, line %d, characters %d-%d%s"
     filename
