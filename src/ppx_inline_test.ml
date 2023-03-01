@@ -93,7 +93,7 @@ let rec short_desc_of_expr ~max_len e =
 ;;
 
 let descr ~(loc : Location.t) ?(inner_loc = loc) e_opt id_opt =
-  let filename = File_path.get_default_path loc in
+  let filename = loc.loc_start.pos_fname in
   let line = loc.loc_start.pos_lnum in
   let start_pos = loc.loc_start.pos_cnum - loc.loc_start.pos_bol in
   let end_pos = inner_loc.Location.loc_end.pos_cnum - loc.loc_start.pos_bol in
@@ -120,7 +120,7 @@ let apply_to_descr lid ~loc ?inner_loc e_opt id_opt tags more_arg =
   let expr =
     pexp_apply
       ~loc
-      (evar ~loc ("Ppx_inline_test_lib.Runtime." ^ lid))
+      (evar ~loc ("Ppx_inline_test_lib." ^ lid))
       [ Labelled "config", [%expr (module Inline_test_config)]
       ; Labelled "descr", descr
       ; Labelled "tags", elist ~loc (List.map ~f:(estring ~loc) tags)
@@ -155,6 +155,9 @@ let all_tags =
   ; "32-bits-only"
   ; "fast-flambda"
   ; "x-library-inlining-sensitive"
+  ; "not-on-el7"
+  ; "not-on-el8"
+  ; "disabled"
   ]
 ;;
 
@@ -171,7 +174,9 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
     Location.raise_errorf
       ~loc
       "%s: extension is disabled because the tests would be ignored (the build system \
-       didn't pass -inline-test-lib)"
+       didn't pass -inline-test-lib. With jenga or dune, this usually happens when \
+       writing tests in files that are part of an executable stanza, but only library \
+       stanzas support inline tests)"
       name_of_ppx_rewriter;
   List.iter tags ~f:(fun tag ->
     match validate_tag tag with
@@ -314,14 +319,12 @@ let () =
         maybe_drop
           loc
           [%expr
-            Ppx_inline_test_lib.Runtime.set_lib_and_partition
+            Ppx_inline_test_lib.set_lib_and_partition
               [%e estring ~loc libname]
               [%e estring ~loc partition]]
       and footer =
         let loc = { loc with loc_start = loc.loc_end } in
-        maybe_drop
-          loc
-          [%expr Ppx_inline_test_lib.Runtime.unset_lib [%e estring ~loc libname]]
+        maybe_drop loc [%expr Ppx_inline_test_lib.unset_lib [%e estring ~loc libname]]
       in
       header, footer)
 ;;

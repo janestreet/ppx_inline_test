@@ -35,14 +35,22 @@ let%test _ [@tags "js-only"] = <expr>
 ```
 
 Available tags are:
+
 *   `no-js` for tests that should not run when compiling Ocaml to Javascript
+
 *   `js-only` for tests that should only run in Javascript
+
 *   `32-bits-only` for tests that should only run in 32 bits architectures
+
 *   `64-bits-only` for tests that should only run in 64 bits architectures
+
 *   `fast-flambda` for tests that might only pass when compiling with flambda, -O3
     and cross library inlining
+
 *   `x-library-inlining-sensitive` for tests that might only pass when compiling
     with cross library inlining switched on
+
+*   `disabled` for tests that should not run (unless requested with -require-tag)
 
 One can also tag entire test modules similarly:
 
@@ -113,6 +121,8 @@ The full set of tests are run when building the jenga `runtest` alias.
 Building and running the tests outside of jane street with dune
 ----------------------------------------
 
+Inline tests can only be used in libraries, not executables.
+
 To use this with dune, see [dune's documentation](https://dune.readthedocs.io/en/latest/tests.html).
 At the time of writing of the current document, the short version is:
 * define a library this way:
@@ -148,7 +158,7 @@ necessarily want to run their tests too. For instance, `core` is built by giving
 core_extended`. And now when an executable linked with both `core` and `core_extended` is
 run with a `libname` of `core_extended`, only the tests of `core_extended` are run.
 
-Finally, after running tests, `Ppx_inline_test_lib.Runtime.exit ()` should be called (to
+Finally, after running tests, `Ppx_inline_test_lib.exit ()` should be called (to
 exit with an error and a summary of the number of failed tests if there were errors or
 exit normally otherwise).
 
@@ -158,10 +168,10 @@ before the binary starts doing non-test side effects. However be aware that
 `Base.am_testing` will be `true` even when not running tests, which may be undesirable.
 
 ```ocaml
-match Ppx_inline_test_lib.Runtime.testing with
+match Ppx_inline_test_lib.testing with
 | `Testing `Am_test_runner ->
   print_endline "Exiting test suite";
-  Ppx_inline_test_lib.Runtime.exit ()
+  Ppx_inline_test_lib.exit ()
 | `Testing _ -> exit 0
 | `Not_testing -> ()
 ```
@@ -171,6 +181,10 @@ Command line arguments
 
 The executable that runs tests can take additional command line arguments. The most useful
 of these are:
+
+* `-stop-on-error`
+
+    Stop running tests after the first error.
 
 *   `-verbose`
 
@@ -192,7 +206,26 @@ of these are:
 *   `-drop-tag tag`
  
     drop all the tests tagged with `tag`.
-    
+
+These can be specified to jenga like this:
+
+```
+(library
+  (...
+   (inline_tests ((flags (-stop-on-error))))
+   ...
+  ))
+```
+
+and to dune like this:
+
+```
+(library
+  ...
+  (inline_tests (flags (-stop-on-error)))
+  ...)
+```
+
 Parallelizing tests
 -------------------
 

@@ -66,7 +66,7 @@ module Tag_predicate = struct
     ; dropped_tags : string list
     }
 
-  let enable_everything = { required_tags = []; dropped_tags = [] }
+  let initial = { required_tags = []; dropped_tags = [ "disabled" ] }
 
   let drop t tag =
     { dropped_tags = tag :: t.dropped_tags
@@ -204,7 +204,6 @@ let use_color = ref true
 let in_place = ref false
 let diff_command = ref None
 let source_tree_root = ref None
-let allow_output_patterns = ref false
 
 let displayed_descr descr filename line start_pos end_pos =
   let (lazy descr) = descr in
@@ -243,7 +242,7 @@ let () =
       let tests = ref [] in
       let list_partitions = ref false in
       let partition = ref None in
-      let tag_predicate = ref Tag_predicate.enable_everything in
+      let tag_predicate = ref Tag_predicate.initial in
       let name_filter = ref [] in
       parse_argv
         (Array.of_list (name :: rest))
@@ -323,9 +322,6 @@ let () =
            ; ( "-diff-cmd"
              , Arg.String (fun s -> diff_command := Some s)
              , " Diff command for tests that require diffing (use - to disable diffing)" )
-           ; ( "-allow-output-patterns"
-             , Arg.Set allow_output_patterns
-             , " Allow output patterns in tests expectations" )
            ; ( "-source-tree-root"
              , Arg.String (fun s -> source_tree_root := Some s)
              , " Path to the root of the source tree" )
@@ -354,7 +350,7 @@ let am_test_runner =
   | `Ignore -> false
 ;;
 
-let am_running_inline_test_env_var =
+let am_running_env_var =
   (* for approximate compatibility, given that the variable is not exactly equivalent
      to what PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST used to be *)
   "TESTING_FRAMEWORK"
@@ -362,12 +358,12 @@ let am_running_inline_test_env_var =
 
 (* This value is deprecated in principle, in favor of Core.am_running_test, so
    we're going to live with the ugly pattern match. *)
-let am_running_inline_test =
+let am_running =
   match Sys.getenv "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST" with
   | (_ : string) ->
     true (* for compatibility with people setting this variable directly *)
   | exception Not_found ->
-    (match Sys.getenv am_running_inline_test_env_var with
+    (match Sys.getenv am_running_env_var with
      | "inline-test" -> true
      | exception Not_found -> false
      | _ -> false)
@@ -376,7 +372,7 @@ let am_running_inline_test =
 let testing =
   if am_test_runner
   then `Testing `Am_test_runner
-  else if am_running_inline_test
+  else if am_running
   then `Testing `Am_child_of_test_runner
   else `Not_testing
 ;;
@@ -754,7 +750,6 @@ let use_color = !use_color
 let in_place = !in_place
 let diff_command = !diff_command
 let source_tree_root = !source_tree_root
-let allow_output_patterns = !allow_output_patterns
 let evaluators = ref [ summarize ]
 let add_evaluator ~f = evaluators := f :: !evaluators
 
