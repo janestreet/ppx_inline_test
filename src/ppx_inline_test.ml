@@ -40,10 +40,10 @@ let () =
          | "drop" -> maybe_drop_mode := Drop
          | "drop_with_deadcode" -> maybe_drop_mode := Drop_with_deadcode
          | s ->
-           Location.raise_errorf
-             ~loc:id.loc
-             "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode"
-             s))
+            Ast_builder.Default.(
+              pexp_extension  ~loc:id.loc
+                (Location.error_extensionf  ~loc:id.loc
+                "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode")))
 ;;
 
 (* Same as above, but for the Dune setting *)
@@ -59,11 +59,12 @@ let () =
          | "disabled" -> maybe_drop_mode := Drop
          | "ignored" -> maybe_drop_mode := Drop_with_deadcode
          | s ->
-           Location.raise_errorf
-             ~loc:id.loc
-             "invalid 'inline_tests' cookie (%s), expected one of: enabled, disabled or \
-              ignored"
-             s))
+             Ast_builder.Default.(
+              pexp_extension  ~loc:id.loc
+                (Location.error_extensionf  ~loc:id.loc
+                "invalid 'inline_tests' cookie (%s), expected one of: enabled, disabled or \
+                ignored"
+              )))
 ;;
 
 let maybe_drop loc code =
@@ -171,13 +172,15 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
   Has_tests.set true;
   if not (can_use_test_extensions ())
   then
-    Location.raise_errorf
-      ~loc
-      "%s: extension is disabled because the tests would be ignored (the build system \
-       didn't pass -inline-test-lib. With jenga or dune, this usually happens when \
-       writing tests in files that are part of an executable stanza, but only library \
-       stanzas support inline tests)"
-      name_of_ppx_rewriter;
+      Ast_builder.Default.(
+        pexp_extension  ~loc
+        (Location.error_extensionf  ~loc
+          "%s: extension is disabled because the tests would be ignored (the build system \
+          didn't pass -inline-test-lib. With jenga or dune, this usually happens when \
+          writing tests in files that are part of an executable stanza, but only library \
+          stanzas support inline tests)" 
+          name_of_ppx_rewriter)
+        )
   List.iter tags ~f:(fun tag ->
     match validate_tag tag with
     | Ok () -> ()
@@ -187,12 +190,15 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
         | None -> ""
         | Some hint -> "\n" ^ hint
       in
-      Location.raise_errorf
-        ~loc
-        "%s: %S is not a valid tag for inline tests.%s"
-        name_of_ppx_rewriter
-        tag
-        hint)
+      Ast_builder.Default.(
+        pexp_extension  ~loc
+        (Location.error_extensionf  ~loc
+          "%s: %S is not a valid tag for inline tests.%s"
+          name_of_ppx_rewriter
+          tag
+          hint)
+        ))
+        
 ;;
 
 let name_of_ppx_rewriter = "ppx_inline_test"
