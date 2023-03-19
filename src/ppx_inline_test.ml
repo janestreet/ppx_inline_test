@@ -43,7 +43,9 @@ let () =
             Ast_builder.Default.(
               pexp_extension  ~loc:id.loc
                 (Location.error_extensionf  ~loc:id.loc
-                "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode")))
+                "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode"s))
+        )
+     )
 ;;
 
 (* Same as above, but for the Dune setting *)
@@ -64,7 +66,7 @@ let () =
                 (Location.error_extensionf  ~loc:id.loc
                 "invalid 'inline_tests' cookie (%s), expected one of: enabled, disabled or \
                 ignored"
-              )))
+              ))))
 ;;
 
 let maybe_drop loc code =
