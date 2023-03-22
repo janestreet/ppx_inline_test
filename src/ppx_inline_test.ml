@@ -199,12 +199,25 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
   !errors
 ;;
 
-
 let name_of_ppx_rewriter = "ppx_inline_test"
+
+let throw_exception_list ~loc ~(errs: string list) =
+  match errs with
+  | [] -> () (* list is empty, do nothing *)
+  | _ ->
+    let ast_builder = Ast_builder.make loc in
+    List.iter errs ~f:(fun err ->
+      (* loop through errs and raise an error for each one *)
+      Ast_builder.Default.( pexp_extension  ~loc:loc
+      (Location.error_extensionf  ~loc:loc err
+      ))
+    )
+;;
 
 let expand_test ~loc ~path:_ ~name:id ~tags e =
   let loc = { loc with loc_ghost = true } in
-  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
+  let errs = validate_extension_point_exn ~name:name_of_ppx_rewriter ~loc ~tags in
+  throw_exception_list loc errs;
   apply_to_descr "test" ~loc (Some e) id tags [%expr fun () -> [%e e]]
 ;;
 
