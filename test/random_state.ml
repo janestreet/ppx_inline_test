@@ -6,7 +6,6 @@ let test list =
 
 (* Random state is repeatable: *)
 let in_fresh_inline_test = [ 220; 256; 600 ]
-
 let%test_unit _ = test in_fresh_inline_test
 let%test_unit _ = test in_fresh_inline_test
 let%test_unit _ = test in_fresh_inline_test

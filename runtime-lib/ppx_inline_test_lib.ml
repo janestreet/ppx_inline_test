@@ -204,6 +204,7 @@ let use_color = ref true
 let in_place = ref false
 let diff_command = ref None
 let source_tree_root = ref None
+let diff_path_prefix = ref None
 
 let displayed_descr descr filename line start_pos end_pos =
   let (lazy descr) = descr in
@@ -325,6 +326,9 @@ let () =
            ; ( "-source-tree-root"
              , Arg.String (fun s -> source_tree_root := Some s)
              , " Path to the root of the source tree" )
+           ; ( "-diff-path-prefix"
+             , Arg.String (fun s -> diff_path_prefix := Some s)
+             , " Prefix to prepend to filepaths in test output" )
            ])
         (fun anon ->
            Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
@@ -749,6 +753,7 @@ let summarize () =
 let use_color = !use_color
 let in_place = !in_place
 let diff_command = !diff_command
+let diff_path_prefix = !diff_path_prefix
 let source_tree_root = !source_tree_root
 let evaluators = ref [ summarize ]
 let add_evaluator ~f = evaluators := f :: !evaluators

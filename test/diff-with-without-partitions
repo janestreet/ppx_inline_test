@@ -8,7 +8,7 @@
  File "failures.ml", line 5, characters 0-29: name1 threw Exit.
 @@ -18,5 +20,10 @@
  
- File "failures.ml", line 29, characters 0-30: name4 is false.
+ File "failures.ml", line 28, characters 0-30: name4 is false.
  
 -FAILED 6 / 28 tests, 2 TEST_MODULES
 +FAILED 6 / 6 tests, 2 TEST_MODULES

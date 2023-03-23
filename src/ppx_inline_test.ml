@@ -42,7 +42,8 @@ let () =
          | s ->
            Location.raise_errorf
              ~loc:id.loc
-             "invalid 'inline-test' cookie (%s), expected one of: drop, drop_with_deadcode"
+             "invalid 'inline-test' cookie (%s), expected one of: drop, \
+              drop_with_deadcode"
              s))
 ;;
 
@@ -308,23 +309,31 @@ end
 let tags = E.tags
 
 let () =
-  Driver.register_transformation "inline-test" ~extensions:E.all ~enclose_impl:(fun loc ->
-    match loc, Ppx_inline_test_libname.get () with
-    | None, _ | _, None -> [], []
-    | Some loc, Some (libname, partition) ->
-      let loc = { loc with loc_ghost = true } in
-      (* See comment in benchmark_accumulator.ml *)
-      let header =
-        let loc = { loc with loc_end = loc.loc_start } in
-        maybe_drop
-          loc
-          [%expr
-            Ppx_inline_test_lib.set_lib_and_partition
-              [%e estring ~loc libname]
-              [%e estring ~loc partition]]
-      and footer =
-        let loc = { loc with loc_start = loc.loc_end } in
-        maybe_drop loc [%expr Ppx_inline_test_lib.unset_lib [%e estring ~loc libname]]
-      in
-      header, footer)
+  Driver.V2.register_transformation
+    "inline-test"
+    ~extensions:E.all
+    ~enclose_impl:(fun ctxt loc ->
+      match loc, Ppx_inline_test_libname.get () with
+      | None, _ | _, None -> [], []
+      | Some loc, Some (libname, partition_opt) ->
+        let partition =
+          match partition_opt with
+          | None -> Stdlib.Filename.basename (Expansion_context.Base.input_name ctxt)
+          | Some p -> p
+        in
+        let loc = { loc with loc_ghost = true } in
+        (* See comment in benchmark_accumulator.ml *)
+        let header =
+          let loc = { loc with loc_end = loc.loc_start } in
+          maybe_drop
+            loc
+            [%expr
+              Ppx_inline_test_lib.set_lib_and_partition
+                [%e estring ~loc libname]
+                [%e estring ~loc partition]]
+        and footer =
+          let loc = { loc with loc_start = loc.loc_end } in
+          maybe_drop loc [%expr Ppx_inline_test_lib.unset_lib [%e estring ~loc libname]]
+        in
+        header, footer)
 ;;

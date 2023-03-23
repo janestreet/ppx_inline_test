@@ -16,16 +16,12 @@ module F (X : sig
   end) =
 struct
   let () = check X.start
-
   let%test_unit _ = check (X.start + 1)
-
   let () = check (X.start + 2)
 end
 
 let () = check 0
-
 let%test_unit _ = check 1
-
 let () = check 2
 
 let%test _ =
@@ -38,9 +34,7 @@ let () = check 4
 let%test_module _ =
   (module struct
     let () = check 5
-
     let%test_unit _ = check 6
-
     let () = check 7
 
     let%test _ =

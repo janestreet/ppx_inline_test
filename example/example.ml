@@ -38,7 +38,6 @@ let%test_module _ =
     open List
 
     let%test _ = group [] ~break:(fun _ -> assert false) = []
-
     let mis = [ 'M'; 'i'; 's'; 's'; 'i'; 's'; 's'; 'i'; 'p'; 'p'; 'i' ]
 
     let equal_letters =

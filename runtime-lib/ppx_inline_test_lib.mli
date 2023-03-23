@@ -1,4 +1,4 @@
-(** [am_running_inline_test] is [true] if the code is running inline tests
+(** [am_running] is [true] if the code is running inline tests
     (e.g. [let%expect_test], [let%test], [let%test_unit]) or is in an executable
     invoked from inline tests. *)
 val am_running : bool
@@ -45,6 +45,7 @@ val test_module : ((unit -> unit) -> unit) test_function_args
 val use_color : bool
 val in_place : bool
 val diff_command : string option
+val diff_path_prefix : string option
 val source_tree_root : string option
 
 (** Record an evaluator for an external set of tests *)

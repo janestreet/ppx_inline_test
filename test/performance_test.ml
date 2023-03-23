@@ -1,4 +1,5 @@
 let%test ("alloc-test-ok" [@tags "x-library-inlining-sensitive"]) = true
+
 (* Let's just pretend we have a test, say an alloc test, that only works with
    inlining, and is currently broken. *)
 let%test ("alloc-test-fail" [@tags "x-library-inlining-sensitive"]) = false
