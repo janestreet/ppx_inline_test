@@ -1,3 +1,13 @@
+## Release v0.16.0
+
+- Renamed `Ppx_inline_test_runner.Runtime` to `Ppx_inline_test_runner`
+- Renamed `Ppx_inline_test_runner.Runtime.am_running_inline_test{,_env_var}` to `Ppx_inline_test_runner.am_running{,_env_var}`
+- New tag `let%test _ [@tags "disabled"]` for tests that shouldn't run by default
+- Make the README state how to pass flags to the inline tests runner in jbuild/dune files
+- A bit of progress towards supporting running tests in parallel with dune (from @hhugo)
+
+## Old pre-v0.15 changelogs (very likely stale and incomplete)
+
 ## v0.13.1
 
 - Honor the `inline_tests` Dune variable so that inline tests are
