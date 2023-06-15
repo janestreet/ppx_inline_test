@@ -155,6 +155,7 @@ let all_tags =
   ; "64-bits-only"
   ; "32-bits-only"
   ; "fast-flambda"
+  ; "fast-flambda2"
   ; "x-library-inlining-sensitive"
   ; "not-on-el7"
   ; "not-on-el8"
