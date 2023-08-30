@@ -1,1 +1,1 @@
-let () = Ppx_inline_test_lib.Runtime.exit ()
+let () = Ppx_inline_test_lib.exit ()

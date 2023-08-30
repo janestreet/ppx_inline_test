@@ -4,4 +4,4 @@ let%test_module _ =
   (module struct
     [@@@attribute_not_handled_by_anything]
   end)
-
+;;

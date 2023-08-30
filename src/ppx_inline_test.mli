@@ -12,7 +12,10 @@ val set_default_maybe_drop : maybe_drop -> unit
     that tests are allowed with the given ppx command line, and that the tags are
     defined. *)
 val validate_extension_point_exn
-  : name_of_ppx_rewriter:string -> loc:location -> tags:string list -> unit
+  :  name_of_ppx_rewriter:string
+  -> loc:location
+  -> tags:string list
+  -> unit
 
 val maybe_drop : Location.t -> Parsetree.expression -> Parsetree.structure
 
