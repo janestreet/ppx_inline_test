@@ -251,8 +251,8 @@ let () =
            [ ( "-list-test-names"
              , Arg.Unit
                  (fun () ->
-                    list_test_names := true;
-                    verbose := true)
+                   list_test_names := true;
+                   verbose := true)
              , " Do not run tests but show what would have been run" )
            ; ( "-list-partitions"
              , Arg.Unit (fun () -> list_partitions := true)
@@ -269,9 +269,9 @@ let () =
            ; ( "-log"
              , Arg.Unit
                  (fun () ->
-                    (try Sys.remove "inline_tests.log" with
-                     | _ -> ());
-                    log := Some (open_out "inline_tests.log"))
+                   (try Sys.remove "inline_tests.log" with
+                    | _ -> ());
+                   log := Some (open_out "inline_tests.log"))
              , " Log the tests run in inline_tests.log" )
            ; ( "-drop-tag"
              , Arg.String (fun s -> tag_predicate := Tag_predicate.drop !tag_predicate s)
@@ -287,30 +287,30 @@ let () =
            ; ( "-only-test"
              , Arg.String
                  (fun s ->
-                    let filename, index =
-                      match parse_descr s with
-                      | Some (file, index) -> file, index
-                      | None ->
-                        if String.contains s ':'
-                        then (
-                          let i = String.index s ':' in
-                          let filename = String.sub s 0 i in
-                          let index_string =
-                            String.sub s (i + 1) (String.length s - i - 1)
-                          in
-                          let index =
-                            try int_of_string index_string with
-                            | Failure _ ->
-                              Printf.eprintf
-                                "Argument %s doesn't fit the format filename[:line_number]\n\
-                                 %!"
-                                s;
-                              exit 1
-                          in
-                          filename, Some index)
-                        else s, None
-                    in
-                    tests := (filename, index, ref false) :: !tests)
+                   let filename, index =
+                     match parse_descr s with
+                     | Some (file, index) -> file, index
+                     | None ->
+                       if String.contains s ':'
+                       then (
+                         let i = String.index s ':' in
+                         let filename = String.sub s 0 i in
+                         let index_string =
+                           String.sub s (i + 1) (String.length s - i - 1)
+                         in
+                         let index =
+                           try int_of_string index_string with
+                           | Failure _ ->
+                             Printf.eprintf
+                               "Argument %s doesn't fit the format filename[:line_number]\n\
+                                %!"
+                               s;
+                             exit 1
+                         in
+                         filename, Some index)
+                       else s, None
+                   in
+                   tests := (filename, index, ref false) :: !tests)
              , "location Run only the tests specified by all the -only-test options.\n\
                \                      Locations can be one of these forms:\n\
                \                      - file.ml\n\
@@ -331,20 +331,20 @@ let () =
              , " Prefix to prepend to filepaths in test output" )
            ])
         (fun anon ->
-           Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
-           exit 1)
+          Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
+          exit 1)
         (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
       Action.set
         (`Test_mode
-           { which_tests =
-               { libname = lib
-               ; only_test_location = !tests
-               ; which_tags = !tag_predicate
-               ; name_filter = !name_filter
-               }
-           ; what_to_do =
-               (if !list_partitions then `List_partitions else `Run_partition !partition)
-           })
+          { which_tests =
+              { libname = lib
+              ; only_test_location = !tests
+              ; which_tags = !tag_predicate
+              ; name_filter = !name_filter
+              }
+          ; what_to_do =
+              (if !list_partitions then `List_partitions else `Run_partition !partition)
+          })
     | _ -> ())
 ;;
 
@@ -434,22 +434,22 @@ let string_of_module_descr () =
 let position_match def_filename def_line_number l =
   List.exists
     (fun (filename, line_number_opt, used) ->
-       let position_start = String.length def_filename - String.length filename in
-       let found =
-         position_start >= 0
-         &&
-         let end_of_def_filename =
-           String.sub def_filename position_start (String.length filename)
-         in
-         end_of_def_filename = filename
-         && (position_start = 0 || def_filename.[position_start - 1] = '/')
-         &&
-         match line_number_opt with
-         | None -> true
-         | Some line_number -> def_line_number = line_number
-       in
-       if found then used := true;
-       found)
+      let position_start = String.length def_filename - String.length filename in
+      let found =
+        position_start >= 0
+        &&
+        let end_of_def_filename =
+          String.sub def_filename position_start (String.length filename)
+        in
+        end_of_def_filename = filename
+        && (position_start = 0 || def_filename.[position_start - 1] = '/')
+        &&
+        match line_number_opt with
+        | None -> true
+        | Some line_number -> def_line_number = line_number
+      in
+      if found then used := true;
+      found)
     l
 ;;
 
@@ -471,11 +471,11 @@ let print_delayed_errors () =
 let eprintf_or_delay fmt =
   Printf.ksprintf
     (fun s ->
-       if !verbose then delayed_errors := s :: !delayed_errors else Printf.eprintf "%s%!" s;
-       if !stop_on_error
-       then (
-         print_delayed_errors ();
-         exit 2))
+      if !verbose then delayed_errors := s :: !delayed_errors else Printf.eprintf "%s%!" s;
+      if !stop_on_error
+      then (
+        print_delayed_errors ();
+        exit 2))
     fmt
 ;;
 
@@ -489,21 +489,21 @@ let hum_backtrace backtrace =
   backtrace
   |> String.split_lines
   |> List.take_while ~f:(fun str ->
-    not (String.Search_pattern.matches (force where_to_cut_backtrace) str))
+       not (String.Search_pattern.matches (force where_to_cut_backtrace) str))
   |> List.map ~f:(fun str -> "  " ^ str ^ "\n")
   |> String.concat
 ;;
 
 let[@inline never] test_inner
-                     ~config
-                     ~descr
-                     ~tags
-                     ~filename:def_filename
-                     ~line_number:def_line_number
-                     ~start_pos
-                     ~end_pos
-                     f
-                     bool_of_f
+  ~config
+  ~descr
+  ~tags
+  ~filename:def_filename
+  ~line_number:def_line_number
+  ~start_pos
+  ~end_pos
+  f
+  bool_of_f
   =
   match Action.get () with
   | `Ignore -> ()
@@ -519,8 +519,8 @@ let[@inline never] test_inner
     let should_run =
       Some libname = !dynamic_lib
       && (match only_test_location with
-        | [] -> true
-        | _ :: _ -> position_match def_filename def_line_number only_test_location)
+          | [] -> true
+          | _ :: _ -> position_match def_filename def_line_number only_test_location)
       && (not (Tag_predicate.disabled which_tags ~complete_tags))
       && name_filter_match ~name_filter (Lazy.force descr)
     in
@@ -613,14 +613,14 @@ let test_unit ~config ~descr ~tags ~filename ~line_number ~start_pos ~end_pos f 
 ;;
 
 let[@inline never] test_module
-                     ~config
-                     ~descr
-                     ~tags
-                     ~filename:def_filename
-                     ~line_number:def_line_number
-                     ~start_pos
-                     ~end_pos
-                     f
+  ~config
+  ~descr
+  ~tags
+  ~filename:def_filename
+  ~line_number:def_line_number
+  ~start_pos
+  ~end_pos
+  f
   =
   match Action.get () with
   | `Ignore -> ()
@@ -727,9 +727,9 @@ let summarize () =
             "ppx_inline_test error: the following -only-test flags matched nothing:";
           List.iter
             (fun (filename, line_number_opt, _) ->
-               match line_number_opt with
-               | None -> Printf.eprintf " %s" filename
-               | Some line_number -> Printf.eprintf " %s:%d" filename line_number)
+              match line_number_opt with
+              | None -> Printf.eprintf " %s" filename
+              | Some line_number -> Printf.eprintf " %s:%d" filename line_number)
             tests;
           Printf.eprintf ".\n%!";
           Test_result.Error

@@ -7,7 +7,6 @@ open Ast_builder.Default
    use of [=].  It is especially important to not use polymorphic comparisons, since we
    are moving more and more to code that doesn't have them in scope. *)
 
-
 type maybe_drop =
   | Keep
   | Drop_with_deadcode
@@ -314,27 +313,27 @@ let () =
     "inline-test"
     ~extensions:E.all
     ~enclose_impl:(fun ctxt loc ->
-      match loc, Ppx_inline_test_libname.get () with
-      | None, _ | _, None -> [], []
-      | Some loc, Some (libname, partition_opt) ->
-        let partition =
-          match partition_opt with
-          | None -> Stdlib.Filename.basename (Expansion_context.Base.input_name ctxt)
-          | Some p -> p
-        in
-        let loc = { loc with loc_ghost = true } in
-        (* See comment in benchmark_accumulator.ml *)
-        let header =
-          let loc = { loc with loc_end = loc.loc_start } in
-          maybe_drop
-            loc
-            [%expr
-              Ppx_inline_test_lib.set_lib_and_partition
-                [%e estring ~loc libname]
-                [%e estring ~loc partition]]
-        and footer =
-          let loc = { loc with loc_start = loc.loc_end } in
-          maybe_drop loc [%expr Ppx_inline_test_lib.unset_lib [%e estring ~loc libname]]
-        in
-        header, footer)
+    match loc, Ppx_inline_test_libname.get () with
+    | None, _ | _, None -> [], []
+    | Some loc, Some (libname, partition_opt) ->
+      let partition =
+        match partition_opt with
+        | None -> Stdlib.Filename.basename (Expansion_context.Base.input_name ctxt)
+        | Some p -> p
+      in
+      let loc = { loc with loc_ghost = true } in
+      (* See comment in benchmark_accumulator.ml *)
+      let header =
+        let loc = { loc with loc_end = loc.loc_start } in
+        maybe_drop
+          loc
+          [%expr
+            Ppx_inline_test_lib.set_lib_and_partition
+              [%e estring ~loc libname]
+              [%e estring ~loc partition]]
+      and footer =
+        let loc = { loc with loc_start = loc.loc_end } in
+        maybe_drop loc [%expr Ppx_inline_test_lib.unset_lib [%e estring ~loc libname]]
+      in
+      header, footer)
 ;;

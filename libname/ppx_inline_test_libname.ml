@@ -7,13 +7,13 @@ let () =
     "-inline-test-lib"
     (Arg.String
        (fun lib ->
-          let p =
-            match String.index lib ':' with
-            | exception Not_found -> lib, None
-            | i ->
-              String.sub lib 0 i, Some (String.sub lib (i + 1) (String.length lib - i - 1))
-          in
-          libname_and_partition := Some p))
+         let p =
+           match String.index lib ':' with
+           | exception Not_found -> lib, None
+           | i ->
+             String.sub lib 0 i, Some (String.sub lib (i + 1) (String.length lib - i - 1))
+         in
+         libname_and_partition := Some p))
     ~doc:
       " A base name to use for generated identifiers (has to be globally unique in a \
        program). ppx_inline_test (and ppx_bench) are disabled unless this flag is \
