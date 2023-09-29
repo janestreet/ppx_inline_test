@@ -12,8 +12,8 @@ let check i =
 ;;
 
 module F (X : sig
-    val start : int
-  end) =
+  val start : int
+end) =
 struct
   let () = check X.start
   let%test_unit _ = check (X.start + 1)
@@ -47,16 +47,16 @@ let%test_module _ =
         let () = check 9
 
         module _ = F (struct
-            let start = 10
-          end)
+          let start = 10
+        end)
 
         let () = check 13
       end)
     ;;
 
     module _ = F (struct
-        let start = 14
-      end)
+      let start = 14
+    end)
 
     let () = check 17
   end)
