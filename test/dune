@@ -41,7 +41,7 @@
    \n"))
  (mode fallback))
 
-(alias (name runtest)
+(rule (alias runtest)
  (deps test.expected test.output test-inlining.expected test-inlining.output)
  (action
   (bash
