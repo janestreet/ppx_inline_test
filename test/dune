@@ -38,8 +38,7 @@
   (bash
     "\
    \ndiff -u  --label test.output --label test-partitions.output test.output test-partitions.output > diff-with-without-partitions || true\
-   \n"))
- (mode fallback))
+   \n")))
 
 (alias (name runtest)
  (deps test.expected test.output test-inlining.expected test-inlining.output)
