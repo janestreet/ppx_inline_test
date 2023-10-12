@@ -90,6 +90,12 @@ module Tag_predicate = struct
   ;;
 end
 
+module Where_to_list = struct
+  type t =
+    | Stdout
+    | File of string
+end
+
 type which_tests =
   { libname : string
   ; only_test_location : (filename * line_number option * bool ref) list
@@ -99,7 +105,7 @@ type which_tests =
 
 type test_mode =
   { which_tests : which_tests
-  ; what_to_do : [ `Run_partition of string option | `List_partitions ]
+  ; what_to_do : [ `Run_partition of string option | `List_partitions of Where_to_list.t ]
   }
 
 module Action : sig
@@ -241,7 +247,7 @@ let () =
     | name :: "inline-test-runner" :: lib :: rest ->
       (* when we see this argument, we switch to test mode *)
       let tests = ref [] in
-      let list_partitions = ref false in
+      let list_partitions = (ref None : Where_to_list.t option ref) in
       let partition = ref None in
       let tag_predicate = ref Tag_predicate.initial in
       let name_filter = ref [] in
@@ -255,8 +261,12 @@ let () =
                    verbose := true)
              , " Do not run tests but show what would have been run" )
            ; ( "-list-partitions"
-             , Arg.Unit (fun () -> list_partitions := true)
+             , Arg.Unit (fun () -> list_partitions := Some Stdout)
              , " Lists all the partitions that contain at least one test or test_module" )
+           ; ( "-list-partitions-into-file"
+             , Arg.String (fun file -> list_partitions := Some (File file))
+             , " Lists all the partitions that contain at least one test or test_module \
+                into FILE" )
            ; ( "-partition"
              , Arg.String (fun i -> partition := Some i)
              , " Only run the tests in the given partition" )
@@ -343,7 +353,9 @@ let () =
               ; name_filter = !name_filter
               }
           ; what_to_do =
-              (if !list_partitions then `List_partitions else `Run_partition !partition)
+              (match !list_partitions with
+               | Some where_to_list -> `List_partitions where_to_list
+               | None -> `Run_partition !partition)
           })
     | _ -> ())
 ;;
@@ -527,7 +539,7 @@ let[@inline never] test_inner
     if should_run
     then (
       match what_to_do with
-      | `List_partitions -> Partition.found_test ()
+      | `List_partitions _ -> Partition.found_test ()
       | `Run_partition partition ->
         if Partition.is_current partition
         then (
@@ -581,7 +593,7 @@ let set_lib_and_partition static_lib partition =
        then (
          let requires_partition =
            match what_to_do with
-           | `List_partitions | `Run_partition (Some _) -> true
+           | `List_partitions _ | `Run_partition (Some _) -> true
            | `Run_partition None -> false
          in
          if partition = "" && requires_partition
@@ -646,7 +658,7 @@ let[@inline never] test_module
     if should_run
     then (
       match what_to_do with
-      | `List_partitions -> Partition.found_test ()
+      | `List_partitions _ -> Partition.found_test ()
       | `Run_partition partition ->
         if Partition.is_current partition
         then (
@@ -697,8 +709,16 @@ let summarize () =
          tests.\n\
          %!";
     Test_result.Error
-  | `Test_mode { which_tests = _; what_to_do = `List_partitions } ->
-    List.iter (Printf.printf "%s\n") (Partition.all ());
+  | `Test_mode { which_tests = _; what_to_do = `List_partitions where_to_list } ->
+    let fout, close =
+      match where_to_list with
+      | Stdout -> stdout, fun () -> ()
+      | File file ->
+        let fout = open_out file in
+        fout, fun () -> close_out fout
+    in
+    List.iter (Printf.fprintf fout "%s\n") (Partition.all ());
+    close ();
     Test_result.Success
   | `Test_mode { what_to_do = `Run_partition _; which_tests } ->
     (match !log with

@@ -1,0 +1,1 @@
+(library (name ppx_inline_test_run_by_partition) (preprocess (pps ppx_jane)))
