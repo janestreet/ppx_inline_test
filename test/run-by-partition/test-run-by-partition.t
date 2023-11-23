@@ -1,6 +1,6 @@
 When running inline tests, jenga first gets the output of
 [inline_tests_runner -list-partitions], then loops through those lines, testing
-the partitions one-by-one. If code linked into [inline_tests_runner] produce
+the partitions one-by-one. If code linked into [inline_tests_runner] produces
 other toplevel output, it can mangle the partition list and cause jenga to try
 running nonexistent tests instead (while the real ones are silently ignored).
 
@@ -11,6 +11,11 @@ running nonexistent tests instead (while the real ones are silently ignored).
 
   $ ./inline_tests_runner -list-partitions | while read partition; do ./inline_tests_runner -partition "$partition"; done
   PRINTED FROM TEST FILE (no-eol)
+
+Since the test succeeded, it means no tests were run.
+
+Instead, we use the [-list-partitions-into-file] flag, which will separate the
+partition list from stray STDIO:
 
   $ PARTITION_FILE=tmp.partitions
 
@@ -27,4 +32,20 @@ running nonexistent tests instead (while the real ones are silently ignored).
   PRINTED FROM TEST FILE (no-eol)
   [2]
 
+This time, the test failed (as it should).
+
   $ rm $PARTITION_FILE
+
+In reality, jenga does not interact with the inline test runner using real
+files. Instead, it runs a script that manipulates some file descriptors to
+collect the partition list like so:
+
+  $ exec {stdout}>&1; ./inline_tests_runner -list-partitions-into-file /dev/fd/${stdout} > /dev/null
+  test
+
+  $ ( exec {stdout}>&1; ./inline_tests_runner -list-partitions-into-file /dev/fd/${stdout} > /dev/null ) | while read partition; do ./inline_tests_runner -partition "$partition"; done
+  File "test.ml", line 2, characters 0-18: <<false>> is false.
+  
+  FAILED 1 / 1 tests
+  PRINTED FROM TEST FILE (no-eol)
+  [2]
