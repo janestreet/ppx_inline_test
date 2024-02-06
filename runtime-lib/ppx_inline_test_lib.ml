@@ -710,15 +710,16 @@ let summarize () =
          %!";
     Test_result.Error
   | `Test_mode { which_tests = _; what_to_do = `List_partitions where_to_list } ->
-    let fout, close =
+    let with_out_channel f =
       match where_to_list with
-      | Stdout -> stdout, fun () -> ()
+      | Stdout -> f stdout
       | File file ->
-        let fout = open_out file in
-        fout, fun () -> close_out fout
+        (* Not passing Open_creat ensures that the file we are supposed to write to exists *)
+        open_out_gen [ Open_wronly; Open_text ] 0 file
+        |> Base.Exn.protectx ~f ~finally:close_out
     in
-    List.iter (Printf.fprintf fout "%s\n") (Partition.all ());
-    close ();
+    with_out_channel (fun fout ->
+      List.iter (Printf.fprintf fout "%s\n") (Partition.all ()));
     Test_result.Success
   | `Test_mode { what_to_do = `Run_partition _; which_tests } ->
     (match !log with

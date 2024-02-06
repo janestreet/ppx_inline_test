@@ -18,6 +18,7 @@ Instead, we use the [-list-partitions-into-file] flag, which will separate the
 partition list from stray STDIO:
 
   $ PARTITION_FILE=tmp.partitions
+  $ touch "${PARTITION_FILE}"
 
   $ ./inline_tests_runner -list-partitions-into-file $PARTITION_FILE
   PRINTED FROM TEST FILE (no-eol)
@@ -34,7 +35,16 @@ partition list from stray STDIO:
 
 This time, the test failed (as it should).
 
+To help catch situations where jenga and the inline_tests_runner can't
+communicate over the filesystem (because, for example, the inline_tests_runner
+has been wrapped in bwrap), the inline_tests_runner complains if asked to list
+partitions into a file that does not exist.
+
   $ rm $PARTITION_FILE
+  $ OCAMLRUNPARAM=b=0 ./inline_tests_runner -list-partitions-into-file $PARTITION_FILE
+  PRINTED FROM TEST FILEFatal error: exception Sys_error("tmp.partitions: No such file or directory")
+  [2]
+
 
 In reality, jenga does not interact with the inline test runner using real
 files. Instead, it runs a script that manipulates some file descriptors to

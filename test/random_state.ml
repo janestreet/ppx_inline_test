@@ -5,13 +5,13 @@ let test list =
 ;;
 
 (* Random state is repeatable: *)
-let in_fresh_inline_test = [ 220; 256; 600 ]
+let in_fresh_inline_test = [ 35; 358; 338 ]
 let%test_unit _ = test in_fresh_inline_test
 let%test_unit _ = test in_fresh_inline_test
 let%test_unit _ = test in_fresh_inline_test
 
 (* Random state can be overridden: *)
-let after_random_init_0 = [ 752; 190; 154 ]
+let after_random_init_0 = [ 518; 504; 87 ]
 
 let%test_unit _ =
   Random.init 0;

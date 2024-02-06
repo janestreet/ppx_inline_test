@@ -1,2 +1,5 @@
-(library (name inline_test_config) (public_name ppx_inline_test.config)
- (libraries) (preprocess no_preprocessing))
+(library
+ (name inline_test_config)
+ (public_name ppx_inline_test.config)
+ (libraries)
+ (preprocess no_preprocessing))
