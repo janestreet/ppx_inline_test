@@ -26,18 +26,9 @@ module Test_result = struct
   let combine_all ts = List.fold_left combine Success ts
 end
 
-let parse_argv argv l f msg =
-  try Arg.parse_argv argv l f msg with
-  | Arg.Bad msg ->
-    Printf.eprintf "%s" msg;
-    exit 1
-  | Arg.Help msg ->
-    Printf.printf "%s" msg;
-    exit 0
-;;
-
 type descr = string
 
+let already_initialized = ref false
 let test_modules_ran = ref 0
 let test_modules_failed = ref 0
 let tests_ran = ref 0
@@ -240,124 +231,156 @@ let parse_descr str =
         | _ -> None))
 ;;
 
+let parse_argv ?current args =
+  match args with
+  | name
+    :: "inline-test-runner" (* when we see this argument, we switch to test mode *)
+    :: lib
+    :: rest ->
+    (* initialization should only occur once *)
+    if !already_initialized
+    then
+      raise
+        (Arg.Bad
+           "The inline test runner can only be initialized once, and has already been \
+            initialized.");
+    already_initialized := true;
+    let tests = ref [] in
+    let list_partitions = (ref None : Where_to_list.t option ref) in
+    let partition = ref None in
+    let tag_predicate = ref Tag_predicate.initial in
+    let name_filter = ref [] in
+    Arg.parse_argv
+      ?current
+      (Array.of_list (name :: rest))
+      (Arg.align
+         [ ( "-list-test-names"
+           , Arg.Unit
+               (fun () ->
+                 list_test_names := true;
+                 verbose := true)
+           , " Do not run tests but show what would have been run" )
+         ; ( "-list-partitions"
+           , Arg.Unit (fun () -> list_partitions := Some Stdout)
+           , " Lists all the partitions that contain at least one test or test_module" )
+         ; ( "-list-partitions-into-file"
+           , Arg.String (fun file -> list_partitions := Some (File file))
+           , " Lists all the partitions that contain at least one test or test_module \
+              into FILE" )
+         ; ( "-partition"
+           , Arg.String (fun i -> partition := Some i)
+           , " Only run the tests in the given partition" )
+         ; "-verbose", Arg.Set verbose, " Show the tests as they run"
+         ; ( "-stop-on-error"
+           , Arg.Set stop_on_error
+           , " Run tests only up to the first error (doesn't work for expect tests)" )
+         ; "-strict", Arg.Set strict, " End with an error if no tests were run"
+         ; "-show-counts", Arg.Set show_counts, " Show the number of tests ran"
+         ; ( "-log"
+           , Arg.Unit
+               (fun () ->
+                 (try Sys.remove "inline_tests.log" with
+                  | _ -> ());
+                 log := Some (open_out "inline_tests.log"))
+           , " Log the tests run in inline_tests.log" )
+         ; ( "-drop-tag"
+           , Arg.String (fun s -> tag_predicate := Tag_predicate.drop !tag_predicate s)
+           , "tag Only run tests not tagged with [tag] (overrides previous -require-tag)"
+           )
+         ; ( "-require-tag"
+           , Arg.String (fun s -> tag_predicate := Tag_predicate.require !tag_predicate s)
+           , "tag Only run tests tagged with [tag] (overrides previous -drop-tag)" )
+         ; ( "-matching"
+           , Arg.String (fun s -> name_filter := s :: !name_filter)
+           , "substring Only run tests whose names contain the given substring" )
+         ; ( "-only-test"
+           , Arg.String
+               (fun s ->
+                 let filename, index =
+                   match parse_descr s with
+                   | Some (file, index) -> file, index
+                   | None ->
+                     if String.contains s ':'
+                     then (
+                       let i = String.index s ':' in
+                       let filename = String.sub s 0 i in
+                       let index_string =
+                         String.sub s (i + 1) (String.length s - i - 1)
+                       in
+                       let index =
+                         try int_of_string index_string with
+                         | Failure _ ->
+                           raise
+                             (Arg.Bad
+                                (Printf.sprintf
+                                   "Argument %s doesn't fit the format \
+                                    filename[:line_number]\n\
+                                    %!"
+                                   s))
+                       in
+                       filename, Some index)
+                     else s, None
+                 in
+                 tests := (filename, index, ref false) :: !tests)
+           , "location Run only the tests specified by all the -only-test options.\n\
+             \                      Locations can be one of these forms:\n\
+             \                      - file.ml\n\
+             \                      - file.ml:line_number\n\
+             \                      - File \"file.ml\"\n\
+             \                      - File \"file.ml\", line 23\n\
+             \                      - File \"file.ml\", line 23, characters 2-3" )
+         ; "-no-color", Arg.Clear use_color, " Summarize tests without using color"
+         ; "-in-place", Arg.Set in_place, " Update expect tests in place"
+         ; ( "-diff-cmd"
+           , Arg.String (fun s -> diff_command := Some s)
+           , " Diff command for tests that require diffing (use - to disable diffing)" )
+         ; ( "-source-tree-root"
+           , Arg.String (fun s -> source_tree_root := Some s)
+           , " Path to the root of the source tree" )
+         ; ( "-diff-path-prefix"
+           , Arg.String (fun s -> diff_path_prefix := Some s)
+           , " Prefix to prepend to filepaths in test output" )
+         ])
+      (fun anon ->
+        raise
+          (Arg.Bad (Printf.sprintf "%s: unexpected anonymous argument %s\n%!" name anon)))
+      (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
+    Action.set
+      (`Test_mode
+        { which_tests =
+            { libname = lib
+            ; only_test_location = !tests
+            ; which_tags = !tag_predicate
+            ; name_filter = !name_filter
+            }
+        ; what_to_do =
+            (match !list_partitions with
+             | Some where_to_list -> `List_partitions where_to_list
+             | None -> `Run_partition !partition)
+        })
+  | _ -> ()
+;;
+
 let () =
   if Base.Exported_for_specific_uses.am_testing
   then (
-    match Array.to_list Sys.argv with
-    | name :: "inline-test-runner" :: lib :: rest ->
-      (* when we see this argument, we switch to test mode *)
-      let tests = ref [] in
-      let list_partitions = (ref None : Where_to_list.t option ref) in
-      let partition = ref None in
-      let tag_predicate = ref Tag_predicate.initial in
-      let name_filter = ref [] in
-      parse_argv
-        (Array.of_list (name :: rest))
-        (Arg.align
-           [ ( "-list-test-names"
-             , Arg.Unit
-                 (fun () ->
-                   list_test_names := true;
-                   verbose := true)
-             , " Do not run tests but show what would have been run" )
-           ; ( "-list-partitions"
-             , Arg.Unit (fun () -> list_partitions := Some Stdout)
-             , " Lists all the partitions that contain at least one test or test_module" )
-           ; ( "-list-partitions-into-file"
-             , Arg.String (fun file -> list_partitions := Some (File file))
-             , " Lists all the partitions that contain at least one test or test_module \
-                into FILE" )
-           ; ( "-partition"
-             , Arg.String (fun i -> partition := Some i)
-             , " Only run the tests in the given partition" )
-           ; "-verbose", Arg.Set verbose, " Show the tests as they run"
-           ; ( "-stop-on-error"
-             , Arg.Set stop_on_error
-             , " Run tests only up to the first error (doesn't work for expect tests)" )
-           ; "-strict", Arg.Set strict, " End with an error if no tests were run"
-           ; "-show-counts", Arg.Set show_counts, " Show the number of tests ran"
-           ; ( "-log"
-             , Arg.Unit
-                 (fun () ->
-                   (try Sys.remove "inline_tests.log" with
-                    | _ -> ());
-                   log := Some (open_out "inline_tests.log"))
-             , " Log the tests run in inline_tests.log" )
-           ; ( "-drop-tag"
-             , Arg.String (fun s -> tag_predicate := Tag_predicate.drop !tag_predicate s)
-             , "tag Only run tests not tagged with [tag] (overrides previous \
-                -require-tag)" )
-           ; ( "-require-tag"
-             , Arg.String
-                 (fun s -> tag_predicate := Tag_predicate.require !tag_predicate s)
-             , "tag Only run tests tagged with [tag] (overrides previous -drop-tag)" )
-           ; ( "-matching"
-             , Arg.String (fun s -> name_filter := s :: !name_filter)
-             , "substring Only run tests whose names contain the given substring" )
-           ; ( "-only-test"
-             , Arg.String
-                 (fun s ->
-                   let filename, index =
-                     match parse_descr s with
-                     | Some (file, index) -> file, index
-                     | None ->
-                       if String.contains s ':'
-                       then (
-                         let i = String.index s ':' in
-                         let filename = String.sub s 0 i in
-                         let index_string =
-                           String.sub s (i + 1) (String.length s - i - 1)
-                         in
-                         let index =
-                           try int_of_string index_string with
-                           | Failure _ ->
-                             Printf.eprintf
-                               "Argument %s doesn't fit the format filename[:line_number]\n\
-                                %!"
-                               s;
-                             exit 1
-                         in
-                         filename, Some index)
-                       else s, None
-                   in
-                   tests := (filename, index, ref false) :: !tests)
-             , "location Run only the tests specified by all the -only-test options.\n\
-               \                      Locations can be one of these forms:\n\
-               \                      - file.ml\n\
-               \                      - file.ml:line_number\n\
-               \                      - File \"file.ml\"\n\
-               \                      - File \"file.ml\", line 23\n\
-               \                      - File \"file.ml\", line 23, characters 2-3" )
-           ; "-no-color", Arg.Clear use_color, " Summarize tests without using color"
-           ; "-in-place", Arg.Set in_place, " Update expect tests in place"
-           ; ( "-diff-cmd"
-             , Arg.String (fun s -> diff_command := Some s)
-             , " Diff command for tests that require diffing (use - to disable diffing)" )
-           ; ( "-source-tree-root"
-             , Arg.String (fun s -> source_tree_root := Some s)
-             , " Path to the root of the source tree" )
-           ; ( "-diff-path-prefix"
-             , Arg.String (fun s -> diff_path_prefix := Some s)
-             , " Prefix to prepend to filepaths in test output" )
-           ])
-        (fun anon ->
-          Printf.eprintf "%s: unexpected anonymous argument %s\n%!" name anon;
-          exit 1)
-        (Printf.sprintf "%s %s %s [args]" name "inline-test-runner" lib);
-      Action.set
-        (`Test_mode
-          { which_tests =
-              { libname = lib
-              ; only_test_location = !tests
-              ; which_tags = !tag_predicate
-              ; name_filter = !name_filter
-              }
-          ; what_to_do =
-              (match !list_partitions with
-               | Some where_to_list -> `List_partitions where_to_list
-               | None -> `Run_partition !partition)
-          })
-    | _ -> ())
+    try parse_argv (Array.to_list Sys.argv) with
+    | Arg.Bad msg ->
+      Printf.eprintf "%s" msg;
+      exit 1
+    | Arg.Help msg ->
+      Printf.printf "%s" msg;
+      exit 0)
+;;
+
+let init args =
+  let current = ref 0 in
+  try
+    parse_argv ~current args;
+    Ok None
+  with
+  | Arg.Bad msg -> Error msg
+  | Arg.Help msg -> Ok (Some msg)
 ;;
 
 let am_test_runner =
@@ -393,7 +416,12 @@ let testing =
   else `Not_testing
 ;;
 
-let wall_time_clock_ns () = Time_now.nanoseconds_since_unix_epoch ()
+(* This function returns an int63 representing the number of nanos since 
+   some (fixed) baseline.  On unix, this baseline will be the unix epoch,
+   and in javascript, the baseline will be "program initialization time."
+   Regardless, it's always safe to subtract two values and use the diff, 
+   which is all that ppx_inline_test_lib uses it for. *)
+let timestamp_ns () = Time_now.nanosecond_counter_for_timing ()
 
 let where_to_cut_backtrace =
   lazy
@@ -402,7 +430,7 @@ let where_to_cut_backtrace =
 ;;
 
 let time_without_resetting_random_seeds f =
-  let before_ns = wall_time_clock_ns () in
+  let before_ns = timestamp_ns () in
   let res =
     (* To avoid noise in backtraces, we do two things.
 
@@ -417,7 +445,7 @@ let time_without_resetting_random_seeds f =
     try Ok (f ()) with
     | exn -> Error (exn, Printexc.get_backtrace ())
   in
-  time_sec := Base.Int63.(wall_time_clock_ns () - before_ns |> to_float) /. 1e9;
+  time_sec := Base.Int63.(timestamp_ns () - before_ns |> to_float) /. 1e9;
   res
 ;;
 

@@ -10,6 +10,18 @@ val am_running_env_var : string
 val testing
   : [ `Not_testing | `Testing of [ `Am_test_runner | `Am_child_of_test_runner ] ]
 
+(** The tests to run are configured by command line arguments, normally pulled from
+    [Sys.argv].  Calling [init] will re-configure the test runner using the passed-in
+    argument list.  This is useful to run tests in a dynamically loaded library; this
+    should be called with the appropriate configuration before loading the library.
+
+    [init] will normally return None.  It will return an error if there's a formatting
+    error in the arguments, and will return Some string if help was requested. It will
+    also return an error if the test runner has already initialized, either by reading
+    command-line arguments or by a previous call to [init].
+*)
+val init : string list -> (string option, string) result
+
 (**/**)
 
 (** Everything below is for ppx or internal use *)

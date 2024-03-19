@@ -1,0 +1,5 @@
+(library
+ (name ppx_inline_test_only_initialize_once)
+ (libraries ppx_inline_test_runner_lib)
+ (preprocess
+  (pps ppx_jane)))

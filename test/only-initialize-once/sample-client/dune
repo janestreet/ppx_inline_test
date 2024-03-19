@@ -1,0 +1,6 @@
+(executables
+ (modes byte exe)
+ (names inline_tests_sample_client)
+ (libraries base ppx_inline_test_lib)
+ (preprocess
+  (pps ppx_jane)))
