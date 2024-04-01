@@ -416,10 +416,10 @@ let testing =
   else `Not_testing
 ;;
 
-(* This function returns an int63 representing the number of nanos since 
+(* This function returns an int63 representing the number of nanos since
    some (fixed) baseline.  On unix, this baseline will be the unix epoch,
    and in javascript, the baseline will be "program initialization time."
-   Regardless, it's always safe to subtract two values and use the diff, 
+   Regardless, it's always safe to subtract two values and use the diff,
    which is all that ppx_inline_test_lib uses it for. *)
 let timestamp_ns () = Time_now.nanosecond_counter_for_timing ()
 
@@ -799,11 +799,41 @@ let summarize () =
        Test_result.Failure)
 ;;
 
-let use_color = !use_color
-let in_place = !in_place
-let diff_command = !diff_command
-let diff_path_prefix = !diff_path_prefix
-let source_tree_root = !source_tree_root
+let assert_test_configs_initialized config =
+  if not !already_initialized
+  then
+    Printf.sprintf
+      "ppx_inline_test error: attempted to access the [%s] config before [init] was \
+       called"
+      config
+    |> failwith
+;;
+
+let use_color () =
+  assert_test_configs_initialized "use_color";
+  !use_color
+;;
+
+let in_place () =
+  assert_test_configs_initialized "in_place";
+  !in_place
+;;
+
+let diff_command () =
+  assert_test_configs_initialized "diff_command";
+  !diff_command
+;;
+
+let diff_path_prefix () =
+  assert_test_configs_initialized "diff_path_prefix";
+  !diff_path_prefix
+;;
+
+let source_tree_root () =
+  assert_test_configs_initialized "source_tree_root";
+  !source_tree_root
+;;
+
 let evaluators = ref [ summarize ]
 let add_evaluator ~f = evaluators := f :: !evaluators
 

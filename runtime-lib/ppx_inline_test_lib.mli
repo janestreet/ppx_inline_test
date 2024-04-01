@@ -54,11 +54,11 @@ val unset_lib : string -> unit
 val test : ((unit -> bool) -> unit) test_function_args
 val test_unit : ((unit -> unit) -> unit) test_function_args
 val test_module : ((unit -> unit) -> unit) test_function_args
-val use_color : bool
-val in_place : bool
-val diff_command : string option
-val diff_path_prefix : string option
-val source_tree_root : string option
+val use_color : unit -> bool
+val in_place : unit -> bool
+val diff_command : unit -> string option
+val diff_path_prefix : unit -> string option
+val source_tree_root : unit -> string option
 
 (** Record an evaluator for an external set of tests *)
 val add_evaluator : f:(unit -> Test_result.t) -> unit
