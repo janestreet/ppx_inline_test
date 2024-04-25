@@ -1,6 +1,7 @@
 ppx_inline_test
 ===============
 
+
 Syntax extension for writing in-line tests in ocaml code.
 
 New syntactic constructs
@@ -108,20 +109,9 @@ let%test_module _ = (module struct
 end)
 ```
 
-Building and running the tests at jane street
---------------------------------
 
-Inline tests can only be used in libraries, not executables.
 
-The standard build rules create an executable script `inline_tests_runner` which runs all
-tests in the directory. This script takes optional arguments (see below) to restrict which
-tests are run.
-
-The full set of tests are run when building the jenga `runtest` alias.
-
-    jenga .runtest
-
-Building and running the tests outside of jane street with dune
+Building and running the tests with Dune
 ----------------------------------------
 
 Inline tests can only be used in libraries, not executables.
@@ -138,7 +128,7 @@ At the time of writing of the current document, the short version is:
 * add tests to it
 * call `dune runtest`
 
-Building and running the tests outside of jane street without dune
+Building and running the tests without Dune
 ----------------------------------------
 
 Code using this extension must be compiled and linked using the
@@ -207,7 +197,7 @@ of these are:
     run. Otherwise all the tests matching any of the locations are run.
 
 *   `-drop-tag tag`
- 
+
     drop all the tests tagged with `tag`.
 
 These can be specified to jenga like this:

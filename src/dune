@@ -13,5 +13,7 @@
   (runner_libraries ppx_inline_test.runner.lib)
   (generate_runner
    (echo "let () = Ppx_inline_test_lib.exit ();;"))
-  (flags "inline-test-runner" %{library-name} -source-tree-root
-    %{workspace_root} -diff-cmd -)))
+  (list_partitions_flags "inline-test-runner" %{library-name}
+    -list-partitions)
+  (flags "inline-test-runner" %{library-name} -partition %{partition}
+    -source-tree-root %{workspace_root} -diff-cmd -)))
