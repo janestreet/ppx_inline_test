@@ -172,16 +172,27 @@ match Ppx_inline_test_lib.testing with
 Command line arguments
 ----------------------
 
-The executable that runs tests can take additional command line arguments. The most useful
-of these are:
+The executable that runs tests can take additional command line arguments. The most useful of these are:
 
-* `-stop-on-error`
+*   `-h` or `--help`
 
-    Stop running tests after the first error.
+    show the full list of command line arguments.
+
+*   `-stop-on-error`
+
+    stop running tests after the first error.
+
+*   `-strict`
+
+    print an error message and exit with an error code if no tests were run.
 
 *   `-verbose`
 
-    to see the tests as they run
+    to see the tests as they run.
+
+*   `-list-test-names`
+
+    do not run test, only print a list of tests that would have been run.
 
 *   `-only-test location`
 
@@ -191,14 +202,30 @@ of these are:
     line 32, characters 2-6` (characters are ignored).
     The position that matters is the position of the `let%test` or `let%test_unit`.
 
-    The positions shown by `-verbose` are valid inputs for `-only-test`.
+    The positions shown by `-verbose` or `-list-test-names` are valid inputs for `-only-test`.
 
     If no `-only-test` flag is given, all the tests are
     run. Otherwise all the tests matching any of the locations are run.
 
+*   `-matching substring`
+
+    only run tests which names contain `substring`.
+
 *   `-drop-tag tag`
 
     drop all the tests tagged with `tag`.
+
+*   `-require-tag tag`
+
+    only run tests tagged with `tag`. This overrides a previous `-drop-tag tag`.
+
+*   `-log`
+
+    log the test run to `inline_tests.log`.
+
+*   `-no-color`
+
+    do not color the output using ANSI escape sequences.
 
 These can be specified to jenga like this:
 
@@ -218,6 +245,8 @@ and to dune like this:
   (inline_tests (flags (-stop-on-error)))
   ...)
 ```
+
+A full list of command line arguments can be seen by appending `-h` or `--help` to the command line of a inline test runner or by looking at the [source code](./runtime-lib/ppx_inline_test_lib.ml), the arguments to the function `parse_argv`.
 
 Parallelizing tests
 -------------------
