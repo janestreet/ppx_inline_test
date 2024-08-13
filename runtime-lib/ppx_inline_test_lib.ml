@@ -529,7 +529,7 @@ let hum_backtrace backtrace =
   backtrace
   |> String.split_lines
   |> List.take_while ~f:(fun str ->
-       not (String.Search_pattern.matches (force where_to_cut_backtrace) str))
+    not (String.Search_pattern.matches (force where_to_cut_backtrace) str))
   |> List.map ~f:(fun str -> "  " ^ str ^ "\n")
   |> String.concat
 ;;

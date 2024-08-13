@@ -12,6 +12,7 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "base"
+  "sexplib0"
   "time_now"
   "dune"     {>= "3.11.0"}
   "ppxlib"   {>= "0.28.0"}

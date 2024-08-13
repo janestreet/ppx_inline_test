@@ -1,5 +1,5 @@
 (library
  (name ppx_inline_test_lib)
  (public_name ppx_inline_test.runtime-lib)
- (libraries base inline_test_config time_now)
+ (libraries base inline_test_config sexplib0 time_now)
  (preprocess no_preprocessing))
