@@ -4,7 +4,7 @@ initialized, either because the program is running from an
 [inline_tests_runner] executable, or because [init] has already been called. We
 also check that help, success, and error cases are reported correctly.
 
-  $ cd $TEST_DIR
+  $ cd $TEST_DIR/sub
 
   $ ./inline_tests_runner
   The inline test runner can only be initialized once, and has already been initialized.

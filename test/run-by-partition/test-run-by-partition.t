@@ -4,7 +4,7 @@ the partitions one-by-one. If code linked into [inline_tests_runner] produces
 other toplevel output, it can mangle the partition list and cause jenga to try
 running nonexistent tests instead (while the real ones are silently ignored).
 
-  $ cd $TEST_DIR
+  $ cd $TEST_DIR/sub
 
   $ ./inline_tests_runner -list-partitions
   PRINTED FROM TEST FILEtest
