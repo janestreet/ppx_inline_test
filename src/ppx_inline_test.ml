@@ -198,17 +198,64 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
         hint)
 ;;
 
+type located_error = { loc : Location.t; message : string }
+
+let check_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
+  let errors = ref [] in
+  Has_tests.set true;
+  if not (can_use_test_extensions ()) then
+    let error_msg =
+      Printf.sprintf
+        "%s: extension is disabled because the tests would be ignored (the build system \
+         didn't pass -inline-test-lib. With jenga or dune, this usually happens when \
+         writing tests in files that are part of an executable stanza, but only library \
+         stanzas support inline tests)"
+        name_of_ppx_rewriter
+    in
+    errors := [{ loc; message = error_msg }] @ !errors
+  else 
+    List.iter tags ~f:(fun tag ->
+      match validate_tag tag with
+      | Ok () -> ()
+      | Error hint ->
+        let hint =
+          match hint with
+          | None -> ""
+          | Some hint -> "\n" ^ hint
+        in
+        let error_msg =
+          Printf.sprintf "%s: %S is not a valid tag for inline tests.%s"
+            name_of_ppx_rewriter tag hint
+        in
+        errors := { loc; message = error_msg } :: !errors
+    );
+  !errors
+;;
+
 let name_of_ppx_rewriter = "ppx_inline_test"
+
+let throw_exception_list (errs : located_error list): expression =
+  match errs with
+  | [] -> () (* list is empty, do nothing *)
+  | _ ->
+    let ast_builder = Ast_builder.make Location.none in
+    List.iter errs ~f:(fun { loc; message } ->
+      (* loop through errs and raise an error for each one *)
+      (*Ast_builder.Default.(Location.error_extensionf ~loc "%s" message)*)
+      Ast_builder.Default.( pexp_extension  ~loc:loc
+      (Location.error_extensionf  ~loc:loc "%s" message))
+    )
+;;
 
 let expand_test ~loc ~path:_ ~name:id ~tags e =
   let loc = { loc with loc_ghost = true } in
-  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
+  let errs: located_error list = check_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags in
   apply_to_descr "test" ~loc (Some e) id tags [%expr fun () -> [%e e]]
 ;;
 
 let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
   let loc = { loc with loc_ghost = true } in
-  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
+  let errs: located_error list = check_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags in
   (* The "; ()" bit is there to breaks tail call optimization, for better backtraces. *)
   apply_to_descr
     "test_unit"
@@ -224,7 +271,7 @@ let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
 
 let expand_test_module ~loc ~path:_ ~name:id ~tags m =
   let loc = { loc with loc_ghost = true } in
-  validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
+  let errs: located_error list = check_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags in
   apply_to_descr
     "test_module"
     ~loc
