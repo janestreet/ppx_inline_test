@@ -1,0 +1,10 @@
+module%test [@name "only tells the truth"] Lies = struct end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: multiple names; use one of:
+  [module%test Lies =], or
+  [module%test [@name "only tells the truth"] _ =],
+but not both.
+|}]

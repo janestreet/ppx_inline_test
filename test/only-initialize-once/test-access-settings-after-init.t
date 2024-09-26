@@ -3,7 +3,7 @@ check that the functions can't be called if the test settings have not yet been
 initialized, either because the program is running from an
 [inline_tests_runner] executable, or because [init] has been called.
 
-  $ cd $TEST_DIR
+  $ cd $TEST_DIR/sub
 
 We'd rather not have the exact contents of the help text in the test output below, so we
 filter out lines that start with two spaces.

@@ -676,9 +676,9 @@ let[@inline never] test_module
       (* If, no matter what tags a test defines, we certainly will drop all tests within
          this module, then don't run the module at all. This means people can write
          things like the following without breaking the 32-bit build:
-         let%test_module [@tags "64-bits-only"] = (module struct
-         let i = Int64.to_int_exn ....
-         end)
+         module%test [@tags "64-bits-only"] _ = struct
+           let i = Int64.to_int_exn ....
+         end
          We don't shortcut based on position, as we can't tell what positions the
          inner tests will have. *)
       && not (Tag_predicate.entire_module_disabled which_tags ~partial_tags)
@@ -694,15 +694,15 @@ let[@inline never] test_module
           let descr = descr () in
           match
             Module_context.with_ ~descr ~tags (fun () ->
-              (* We do not reset random states upon entering [let%test_module].
+              (* We do not reset random states upon entering [module%test].
 
                  Con: Code in test modules can accidentally depend on top-level random
                  state effects.
 
-                 Pros: (1) We don't reset to the same seed on entering a [let%test_module]
+                 Pros: (1) We don't reset to the same seed on entering a [module%test]
                  and then a [let%test] inside that module, which could lead to
                  accidentally randomly generating the same values in some test. (2) Moving
-                 code into and out of [let%test_module] does not change its random seed.
+                 code into and out of [module%test] does not change its random seed.
               *)
               time_without_resetting_random_seeds f)
           with

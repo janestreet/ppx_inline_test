@@ -200,7 +200,7 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
 
 let name_of_ppx_rewriter = "ppx_inline_test"
 
-let expand_test ~loc ~path:_ ~name:id ~tags e =
+let expand_let_test ~loc ~path:_ ~name:id ~tags e =
   let loc = { loc with loc_ghost = true } in
   validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr "test" ~loc (Some e) id tags [%expr fun () -> [%e e]]
@@ -240,15 +240,32 @@ let expand_test_module ~loc ~path:_ ~name:id ~tags m =
        (pexp_letmodule ~loc (Located.mk ~loc (Some "M")) m (eunit ~loc)))
 ;;
 
+let expand_test ~loc ~path variant =
+  match variant with
+  | `Let (name, tags, e) -> expand_let_test ~loc ~path ~name ~tags e
+  | `Module (name, tags, m) -> expand_test_module ~loc ~path ~name ~tags m
+;;
+
 module E = struct
   open Ast_pattern
 
-  let tags =
+  let make_tags context =
     Attribute.declare
       "tags"
-      Attribute.Context.pattern
+      context
       (single_expr_payload
          (pexp_tuple (many (estring __)) ||| map (estring __) ~f:(fun f x -> f [ x ])))
+      (fun x -> x)
+  ;;
+
+  let pattern_tags = make_tags Attribute.Context.pattern
+  let module_tags = make_tags Attribute.Context.module_binding
+
+  let module_name =
+    Attribute.declare
+      "name"
+      Attribute.Context.module_binding
+      (single_expr_payload (estring __'))
       (fun x -> x)
   ;;
 
@@ -273,7 +290,7 @@ module E = struct
          (value_binding
             ~pat:
               (map
-                 (Attribute.pattern tags (opt_name ()))
+                 (Attribute.pattern pattern_tags (opt_name ()))
                  ~f:(fun f attributes name_opt ->
                    f ~name:name_opt ~tags:(list_of_option attributes)))
             ~expr
@@ -281,11 +298,49 @@ module E = struct
        ^:: nil)
   ;;
 
+  let module_name_and_expr expr =
+    pstr
+      (pstr_module
+         (module_binding ~name:__' ~expr
+          |> Attribute.pattern module_name
+          |> Attribute.pattern module_tags
+          |> map0' ~f:Fn.id
+          |> map ~f:(fun f loc tags attr_name bind_name m ->
+            let tags = list_of_option tags in
+            let name =
+              match Option.map ~f:Loc.txt attr_name, bind_name.txt with
+              | None, None -> `None
+              | Some name, None | None, Some name -> `Literal name
+              | Some attr_name, Some bind_name ->
+                Location.raise_errorf
+                  ~loc
+                  "multiple names; use one of:\n\
+                  \  [module%%test %s =], or\n\
+                  \  [module%%test [@name %S] _ =],\n\
+                   but not both."
+                  bind_name
+                  attr_name
+            in
+            f ~name ~tags m))
+       ^:: nil)
+  ;;
+
+  let let_or_module_name_and_expr =
+    let let_pattern =
+      map (opt_name_and_expr __) ~f:(fun f ~name ~tags e -> f (`Let (name, tags, e)))
+    in
+    let module_pattern =
+      map (module_name_and_expr __) ~f:(fun f ~name ~tags m ->
+        f (`Module (name, tags, m)))
+    in
+    let_pattern ||| module_pattern
+  ;;
+
   let test =
     Extension.declare_inline
       "inline_test.test"
       Extension.Context.structure_item
-      (opt_name_and_expr __)
+      let_or_module_name_and_expr
       expand_test
   ;;
 
@@ -308,7 +363,7 @@ module E = struct
   let all = [ test; test_unit; test_module ]
 end
 
-let tags = E.tags
+let tags = E.pattern_tags
 
 let () =
   Driver.V2.register_transformation

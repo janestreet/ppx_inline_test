@@ -29,42 +29,39 @@ module Cnt (V : S) : Cnt with type t = V.t = struct
 end
 
 module _ = Cnt (Int)
+module%test _ = Cnt (Int)
+module%test [@name "description"] _ = Cnt (Int)
 
-let%test_module _ = (module Cnt (Int))
-let%test_module "description" = (module Cnt (Int))
+module%test _ = struct
+  open List
 
-let%test_module _ =
-  (module struct
-    open List
+  let%test _ = group [] ~break:(fun _ -> assert false) = []
+  let mis = [ 'M'; 'i'; 's'; 's'; 'i'; 's'; 's'; 'i'; 'p'; 'p'; 'i' ]
 
-    let%test _ = group [] ~break:(fun _ -> assert false) = []
-    let mis = [ 'M'; 'i'; 's'; 's'; 'i'; 's'; 's'; 'i'; 'p'; 'p'; 'i' ]
+  let equal_letters =
+    [ [ 'M' ]
+    ; [ 'i' ]
+    ; [ 's'; 's' ]
+    ; [ 'i' ]
+    ; [ 's'; 's' ]
+    ; [ 'i' ]
+    ; [ 'p'; 'p' ]
+    ; [ 'i' ]
+    ]
+  ;;
 
-    let equal_letters =
-      [ [ 'M' ]
-      ; [ 'i' ]
-      ; [ 's'; 's' ]
-      ; [ 'i' ]
-      ; [ 's'; 's' ]
-      ; [ 'i' ]
-      ; [ 'p'; 'p' ]
-      ; [ 'i' ]
-      ]
-    ;;
+  let single_letters = [ [ 'M'; 'i'; 's'; 's'; 'i'; 's'; 's'; 'i'; 'p'; 'p'; 'i' ] ]
 
-    let single_letters = [ [ 'M'; 'i'; 's'; 's'; 'i'; 's'; 's'; 'i'; 'p'; 'p'; 'i' ] ]
+  let every_three =
+    [ [ 'M'; 'i'; 's' ]; [ 's'; 'i'; 's' ]; [ 's'; 'i'; 'p' ]; [ 'p'; 'i' ] ]
+  ;;
 
-    let every_three =
-      [ [ 'M'; 'i'; 's' ]; [ 's'; 'i'; 's' ]; [ 's'; 'i'; 'p' ]; [ 'p'; 'i' ] ]
-    ;;
+  let%test _ = group ~break:( <> ) mis = equal_letters
+  let%test _ = group ~break:(fun _ _ -> false) mis = single_letters
+  let%test _ = groupi ~break:(fun i _ _ -> i mod 3 = 0) mis = every_three
 
-    let%test _ = group ~break:( <> ) mis = equal_letters
-    let%test _ = group ~break:(fun _ _ -> false) mis = single_letters
-    let%test _ = groupi ~break:(fun i _ _ -> i mod 3 = 0) mis = every_three
-
-    let%test "slow, but takes no cpu time" =
-      ignore (Unix.nanosleep 0.25 : float);
-      true
-    ;;
-  end)
-;;
+  let%test "slow, but takes no cpu time" =
+    ignore (Unix.nanosleep 0.25 : float);
+    true
+  ;;
+end

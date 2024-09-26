@@ -14,9 +14,17 @@
    ((pps ppx_inline_test_drop)
     drop))))
 
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./inline_tests_runner
+  ./inline_tests_runner.exe
+  (glob_files *.ml)))
+
 (rule
  (targets test.output test-partitions.output test-inlining.output)
- (deps ./inline_tests_runner ./inline_tests_runner.exe)
+ (deps
+  (alias test-runner-runtime-deps))
  (action
   (bash
     "\nfunction run {\n  { OCAMLRUNPARAM=b=0 ./inline_tests_runner \"$@\" || echo code: $?; } |&\n    sed -r -e '/runtime.ml/ s/[0-9]+/XXX/g' -e 's/\\([0-9.]* sec\\)/(XXX sec)/'\n}\nrun > test.output\n\n(\n  export DONT_ASSUME_ALL_TESTS_RUN=\n  run -list-partitions | while read p; do\n     echo Test for partition $p:\n     run -partition $p\n  done\n) > test-partitions.output\n\n(\n  export DONT_ASSUME_ALL_TESTS_RUN=\n  echo Partitions diff:\n  diff <(run -require-tag x-library-inlining-sensitive -list-partitions) <(run -list-partitions) || true\n  echo\n  run -require-tag x-library-inlining-sensitive -verbose\n) > test-inlining.output")))
