@@ -18,5 +18,8 @@ TEST_MODULE at file "failures.ml", line 17, characters 0-48 threw Exit.
 
 File "failures.ml", line 22, characters 0-30: name4 is false.
 
-FAILED 6 / 28 tests, 2 TEST_MODULES
+File "let_test_module.ml", line 3, characters 4-85: <<if true then failwith "let percent test modul[...]>> threw (Failure "let percent test module did in fact run").
+  in TEST_MODULE at file "let_test_module.ml", line 1, characters 0-128
+
+FAILED 7 / 29 tests, 2 TEST_MODULES
 code: 2

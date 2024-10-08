@@ -14,6 +14,8 @@ type maybe_drop =
 
 let maybe_drop_mode = ref Keep
 let set_default_maybe_drop x = maybe_drop_mode := x
+let allow_let_test_module = ref false
+let allow_let_test_module_flag = "-inline-test-allow-let-test-module"
 
 let () =
   Driver.add_arg
@@ -25,7 +27,11 @@ let () =
     (Unit (fun () -> maybe_drop_mode := Drop_with_deadcode))
     ~doc:
       " Drop unit tests by wrapping them inside deadcode to prevent unused variable \
-       warnings."
+       warnings.";
+  Driver.add_arg
+    allow_let_test_module_flag
+    (Set allow_let_test_module)
+    ~doc:" Allow [let%test_module]; otherwise, require newer form [module%test]."
 ;;
 
 let () =
@@ -222,8 +228,16 @@ let expand_test_unit ~loc ~path:_ ~name:id ~tags e =
         ()]
 ;;
 
-let expand_test_module ~loc ~path:_ ~name:id ~tags m =
+let expand_test_module ~is_let_test_module ~loc ~path:_ ~name:id ~tags m =
   let loc = { loc with loc_ghost = true } in
+  if is_let_test_module && not !allow_let_test_module
+  then
+    Location.raise_errorf
+      ~loc
+      "Convert [%s] to [%s] or pass [%s] to ppx driver"
+      "let%test_module"
+      "module%test"
+      allow_let_test_module_flag;
   validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags;
   apply_to_descr
     "test_module"
@@ -243,7 +257,8 @@ let expand_test_module ~loc ~path:_ ~name:id ~tags m =
 let expand_test ~loc ~path variant =
   match variant with
   | `Let (name, tags, e) -> expand_let_test ~loc ~path ~name ~tags e
-  | `Module (name, tags, m) -> expand_test_module ~loc ~path ~name ~tags m
+  | `Module (name, tags, m) ->
+    expand_test_module ~is_let_test_module:false ~loc ~path ~name ~tags m
 ;;
 
 module E = struct
@@ -260,14 +275,6 @@ module E = struct
 
   let pattern_tags = make_tags Attribute.Context.pattern
   let module_tags = make_tags Attribute.Context.module_binding
-
-  let module_name =
-    Attribute.declare
-      "name"
-      Attribute.Context.module_binding
-      (single_expr_payload (estring __'))
-      (fun x -> x)
-  ;;
 
   let list_of_option = function
     | None -> []
@@ -298,17 +305,44 @@ module E = struct
        ^:: nil)
   ;;
 
+  let module_name_pattern pat =
+    Ast_pattern.of_func (fun ctx loc mb k ->
+      let name_attrs, other_attrs =
+        List.partition_map mb.pmb_attributes ~f:(fun attr ->
+          match attr with
+          | { attr_name = { txt = "name"; loc = _ }
+            ; attr_payload =
+                PStr
+                  [%str
+                    [%e? { pexp_desc = Pexp_constant (Pconst_string (name, _, _)); _ }]]
+            ; attr_loc = _
+            } -> First (attr, name)
+          | _ -> Second attr)
+      in
+      match name_attrs with
+      | [] -> Ast_pattern.to_func pat ctx loc mb (k None)
+      | [ (attr, name) ] ->
+        Attribute.mark_as_handled_manually attr;
+        Ast_pattern.to_func
+          pat
+          ctx
+          loc
+          { mb with pmb_attributes = other_attrs }
+          (k (Some name))
+      | _ :: _ :: _ -> Location.raise_errorf ~loc "duplicate @name attribute")
+  ;;
+
   let module_name_and_expr expr =
     pstr
       (pstr_module
          (module_binding ~name:__' ~expr
-          |> Attribute.pattern module_name
+          |> module_name_pattern
           |> Attribute.pattern module_tags
           |> map0' ~f:Fn.id
           |> map ~f:(fun f loc tags attr_name bind_name m ->
             let tags = list_of_option tags in
             let name =
-              match Option.map ~f:Loc.txt attr_name, bind_name.txt with
+              match attr_name, bind_name.txt with
               | None, None -> `None
               | Some name, None | None, Some name -> `Literal name
               | Some attr_name, Some bind_name ->
@@ -357,7 +391,7 @@ module E = struct
       "inline_test.test_module"
       Extension.Context.structure_item
       (opt_name_and_expr (pexp_pack __))
-      expand_test_module
+      (expand_test_module ~is_let_test_module:true)
   ;;
 
   let all = [ test; test_unit; test_module ]

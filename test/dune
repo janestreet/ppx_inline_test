@@ -11,6 +11,8 @@
     performance_test
     random_state
     unidiomatic_syntax)
+   ((pps ppx_inline_test -inline-test-allow-let-test-module)
+    let_test_module)
    ((pps ppx_inline_test_drop)
     drop))))
 
