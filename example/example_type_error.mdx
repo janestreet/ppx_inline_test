@@ -1,0 +1,15 @@
+At time of writing, using doc comments on a test module results in an error telling the
+user to remove the comment.
+
+```ocaml
+(* Non-doc comment *)
+
+(** wow *)
+module%test _ = struct
+  let%expect_test _ = return ()
+end
+```
+```mdx-error
+Line 3, characters 3-13:
+Error: Attributes not allowed here
+```

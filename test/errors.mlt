@@ -1,0 +1,18 @@
+module%test [@name "only tells the truth"] Lies = struct end
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: multiple names; use one of:
+  [module%test Lies =], or
+  [module%test [@name "only tells the truth"] _ =],
+but not both.
+|}]
+
+let%test_module _ = (module struct end)
+
+[%%expect
+  {|
+Line _, characters _-_:
+Error: Convert [let%test_module] to [module%test] or pass [-inline-test-allow-let-test-module] to ppx driver
+|}]

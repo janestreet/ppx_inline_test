@@ -12,8 +12,9 @@ The following constructs are now valid structure items:
 ```ocaml
 let%test "name" = <boolean expr> (* true means ok, false or exn means broken *)
 let%test_unit "name" = <unit expr> (* () means ok, exn means broken *)
-let%test_module "name" = (module <module-expr>)  (* to group tests (to share
-                                                    some setup for instance) *)
+module%test Name = <module_expr>  (* to group tests, e.g. to share setup *)
+module%test [@name "name"] _ = <module_expr>  (* more flexible naming *)
+let%test_module "name" = (module <module-expr>) (* legacy module syntax *)
 ```
 
 We may write `_` instead of `"name"` for anonymous tests. It is also possible to use
@@ -59,7 +60,7 @@ Available tags are:
 One can also tag entire test modules similarly:
 
 ```ocaml
-let%test_module "name" [@tags "no-js"] = (module struct end)
+module%test Name [@tags "no-js"] = struct end
 ```
 
 The flags `-drop-tag` and `-require-tag` can be passed to the test runner to restrict
@@ -98,15 +99,15 @@ module M = Make(Int)
 
 ### Grouping test and side-effecting initialisation.
 
-Since the module passed as an argument to `let%test_module` is only initialised when we
+Since the module defined under `module%test` is only initialised when we
 run the tests, it is ok to perform side-effects in the module-expression argument.
 
 ```ocaml
-let%test_module _ = (module struct
-    module UID = Unique_id.Int(struct end)
+module%test _ = struct
+  module UID = Unique_id.Int(struct end)
 
-    let%test _ = UID.create() <> UID.create()
-end)
+  let%test _ = UID.create() <> UID.create()
+end
 ```
 
 
