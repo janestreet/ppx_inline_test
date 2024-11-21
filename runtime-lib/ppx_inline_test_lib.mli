@@ -60,6 +60,20 @@ val diff_command : unit -> string option
 val diff_path_prefix : unit -> string option
 val source_tree_root : unit -> string option
 
+(** This value is [true] if [FORCE_DROP_INLINE_TEST] was set at startup time. This is
+    useful when compiling to javascript --- Js_of_ocaml can statically evaluate
+    [Sys.getenv "FORCE_DROP_INLINE_TEST"]. Unit tests visibly only reachable if
+    [force_drop] is [true] can then be treated as deadcode.
+
+    It is guaranteed that, if [force_drop = true], no test registered via one of the
+    [test] functions above will run.
+
+    [force_drop] is only exposed so that other ppxs can generate code that checks it more
+    in sight of JSOO's DCE. [force_drop] is otherwise not a recommended method of changing
+    the behavior of a program based on whether test are running.
+*)
+val force_drop : bool
+
 (** Record an evaluator for an external set of tests *)
 val add_evaluator : f:(unit -> Test_result.t) -> unit
 

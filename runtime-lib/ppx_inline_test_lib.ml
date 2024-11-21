@@ -99,6 +99,14 @@ type test_mode =
   ; what_to_do : [ `Run_partition of string option | `List_partitions of Where_to_list.t ]
   }
 
+let force_drop =
+  try
+    ignore (Sys.getenv "FORCE_DROP_INLINE_TEST" : string);
+    true
+  with
+  | Not_found -> false
+;;
+
 module Action : sig
   type t =
     [ `Ignore
@@ -114,14 +122,6 @@ end = struct
     ]
 
   let action : t ref = ref `Ignore
-
-  let force_drop =
-    try
-      ignore (Sys.getenv "FORCE_DROP_INLINE_TEST" : string);
-      true
-    with
-    | Not_found -> false
-  ;;
 
   let get () =
     (* This is useful when compiling to javascript.
