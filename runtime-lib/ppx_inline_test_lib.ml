@@ -416,13 +416,6 @@ let testing =
   else `Not_testing
 ;;
 
-(* This function returns an int63 representing the number of nanos since
-   some (fixed) baseline.  On unix, this baseline will be the unix epoch,
-   and in javascript, the baseline will be "program initialization time."
-   Regardless, it's always safe to subtract two values and use the diff,
-   which is all that ppx_inline_test_lib uses it for. *)
-let timestamp_ns () = Time_now.nanosecond_counter_for_timing ()
-
 let where_to_cut_backtrace =
   lazy
     (Base.String.Search_pattern.create
@@ -430,7 +423,7 @@ let where_to_cut_backtrace =
 ;;
 
 let time_without_resetting_random_seeds f =
-  let before_ns = timestamp_ns () in
+  let before = Timestamp.get () in
   let res =
     (* To avoid noise in backtraces, we do two things.
 
@@ -445,7 +438,7 @@ let time_without_resetting_random_seeds f =
     try Ok (f ()) with
     | exn -> Error (exn, Printexc.get_backtrace ())
   in
-  time_sec := Base.Int63.(timestamp_ns () - before_ns |> to_float) /. 1e9;
+  time_sec := Timestamp.seconds_since before;
   res
 ;;
 

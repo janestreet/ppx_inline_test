@@ -1,5 +1,8 @@
 (library
  (name ppx_inline_test_lib)
  (public_name ppx_inline_test.runtime-lib)
- (libraries base inline_test_config sexplib0 time_now)
+ (libraries base inline_test_config sexplib0
+ (select timestamp.ml from
+   (time_now -> timestamp.time_now.ml)
+   (         -> timestamp.sys.ml)))
  (preprocess no_preprocessing))
