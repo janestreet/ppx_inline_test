@@ -1,4 +1,4 @@
-type t = Base.Intt63.t
+type t = Base.Int63.t
 
 (* This function returns an int63 representing the number of nanos since
    some (fixed) baseline.  On unix, this baseline will be the unix epoch,
