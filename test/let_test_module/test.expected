@@ -1,0 +1,5 @@
+File "let_test_module.ml", line 3, characters 4-85: <<if true then failwith "let percent test modul[...]>> threw (Failure "let percent test module did in fact run").
+  in TEST_MODULE at file "let_test_module.ml", line 1, characters 0-128
+
+FAILED 1 / 1 tests
+code: 2
