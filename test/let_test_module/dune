@@ -1,0 +1,25 @@
+(library
+ (name ppx_inline_test_lib_let_test_module_test)
+ (preprocess
+  (pps ppx_inline_test -inline-test-allow-let-test-module)))
+
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./inline_tests_runner
+  ./inline_tests_runner.exe
+  (glob_files *.ml)))
+
+(rule
+ (targets test.output)
+ (deps
+  (alias test-runner-runtime-deps))
+ (action
+  (bash
+    "\nfunction run {\n  { OCAMLRUNPARAM=b=0 ./inline_tests_runner \"$@\" || echo code: $?; } |&\n    sed -r -e '/runtime.ml/ s/[0-9]+/XXX/g' -e 's/\\([0-9.]* sec\\)/(XXX sec)/'\n}\nrun > test.output\n")))
+
+(rule
+ (alias runtest)
+ (deps test.expected test.output)
+ (action
+  (bash "diff -u test.{expected,output}")))

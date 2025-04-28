@@ -1,0 +1,4 @@
+(library
+ (name ppx_inline_test_lib_drop_test)
+ (preprocess
+  (pps ppx_inline_test_drop)))

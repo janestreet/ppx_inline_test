@@ -1,20 +1,7 @@
 (library
  (name ppx_inline_test_lib_test)
  (preprocess
-  (per_module
-   ((pps ppx_inline_test)
-    config
-    disabled
-    failures
-    file_without_test_module
-    order
-    performance_test
-    random_state
-    unidiomatic_syntax)
-   ((pps ppx_inline_test -inline-test-allow-let-test-module)
-    let_test_module)
-   ((pps ppx_inline_test_drop)
-    drop))))
+  (pps ppx_inline_test)))
 
 (alias
  (name test-runner-runtime-deps)

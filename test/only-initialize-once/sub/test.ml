@@ -1,4 +1,4 @@
-open Base
+open! Base
 
 let%test_unit "running [init] from inside an inline test" =
   match

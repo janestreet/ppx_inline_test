@@ -8,8 +8,7 @@
         include Inline_test_config
         let pre_test_hook () = ...
       end
-    ]}
-*)
+    ]} *)
 
 module type S = sig
   (** Run this function at the beginning of any test *)

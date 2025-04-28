@@ -9,8 +9,7 @@ type maybe_drop =
 val set_default_maybe_drop : maybe_drop -> unit
 
 (** To be called on test extension points that use the ppx_inline_test runtime. Checks
-    that tests are allowed with the given ppx command line, and that the tags are
-    defined. *)
+    that tests are allowed with the given ppx command line, and that the tags are defined. *)
 val validate_extension_point_exn
   :  name_of_ppx_rewriter:string
   -> loc:location

@@ -57,6 +57,10 @@ Available tags are:
 
 *   `disabled` for tests that should not run (unless requested with -require-tag)
 
+*   `runtime4-only` for tests that should not run when compiling with runtime5
+
+*   `runtime5-only` for tests that should only run when compiling with runtime5
+
 One can also tag entire test modules similarly:
 
 ```ocaml

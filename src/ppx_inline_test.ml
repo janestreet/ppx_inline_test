@@ -167,6 +167,8 @@ let all_tags =
   ; "not-on-el7"
   ; "not-on-el8"
   ; "disabled"
+  ; "runtime5-only"
+  ; "runtime4-only"
   ]
 ;;
 
