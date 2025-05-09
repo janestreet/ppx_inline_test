@@ -19,7 +19,7 @@
     "\nfunction run {\n  { OCAMLRUNPARAM=b=0 ./inline_tests_runner \"$@\" || echo code: $?; } |&\n    sed -r -e '/runtime.ml/ s/[0-9]+/XXX/g' -e 's/\\([0-9.]* sec\\)/(XXX sec)/'\n}\nrun > test.output\n")))
 
 (rule
- (alias runtest)
  (deps test.expected test.output)
  (action
-  (bash "diff -u test.{expected,output}")))
+  (bash "diff -u test.{expected,output}"))
+ (alias runtest))

@@ -26,11 +26,11 @@
     "\ndiff -u  --label test.output --label test-partitions.output test.output test-partitions.output > diff-with-without-partitions || true\n")))
 
 (rule
- (alias runtest)
  (deps test.expected test.output test-inlining.expected test-inlining.output)
  (action
   (bash
-    "diff -u test.{expected,output}\n          diff -u test-inlining.{expected,output}")))
+    "diff -u test.{expected,output}\n          diff -u test-inlining.{expected,output}"))
+ (alias runtest))
 
 (alias
  (name runtest)
