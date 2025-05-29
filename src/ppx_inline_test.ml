@@ -269,6 +269,7 @@ module E = struct
       (pstr_value
          nonrecursive
          (value_binding
+            ~constraint_:drop
             ~pat:
               (map
                  (Attribute.pattern tags (opt_name ()))
