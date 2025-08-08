@@ -12,6 +12,7 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "base"
+  "basement"
   "sexplib0"
   "time_now"
   "dune"     {>= "3.17.0"}
