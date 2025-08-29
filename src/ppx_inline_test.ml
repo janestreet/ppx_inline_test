@@ -82,8 +82,8 @@ let maybe_drop loc code =
 ;;
 
 let rec short_desc_of_expr ~max_len e =
-  match e.pexp_desc with
-  | Pexp_let (_, _, e) | Pexp_letmodule (_, _, e) -> short_desc_of_expr ~max_len e
+  match Ppxlib_jane.Shim.Expression_desc.of_parsetree e.pexp_desc ~loc:e.pexp_loc with
+  | Pexp_let (_, _, _, e) | Pexp_letmodule (_, _, e) -> short_desc_of_expr ~max_len e
   | _ ->
     let s = Pprintast.string_of_expression e in
     let res =
