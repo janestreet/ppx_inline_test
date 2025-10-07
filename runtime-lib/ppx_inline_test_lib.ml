@@ -1,3 +1,5 @@
+module Atomic = Basement.Portable_atomic
+
 module Test_result = struct
   type t =
     | Success
@@ -28,7 +30,7 @@ end
 
 type descr = string
 
-let already_initialized = ref false
+let already_initialized = Atomic.make false
 let test_modules_ran = ref 0
 let test_modules_failed = ref 0
 let tests_ran = ref 0
@@ -189,19 +191,18 @@ module Module_context = struct
   let current_tags () = T.tags !current
 end
 
-let verbose_output_channel = ref None
-let strict = ref false
-let show_counts = ref false
-let list_test_names = ref false
+let verbose_output_channel = Atomic.make None
+let strict = Atomic.make false
+let show_counts = Atomic.make false
+let list_test_names = Atomic.make false
 let delayed_errors = ref []
-let stop_on_error = ref false
-let log = ref None
-let time_sec = ref 0.
-let use_color = ref true
-let in_place = ref false
-let diff_command = ref None
-let source_tree_root = ref None
-let diff_path_prefix = ref None
+let stop_on_error = Atomic.make false
+let log = Atomic.make None
+let use_color = Atomic.make true
+let in_place = Atomic.make false
+let diff_command = Atomic.make None
+let source_tree_root = Atomic.make None
+let diff_path_prefix = Atomic.make None
 
 let opt_printf ch fmt =
   let formatter =
@@ -213,7 +214,7 @@ let opt_printf ch fmt =
 ;;
 
 let displayed_descr descr filename line start_pos end_pos =
-  let (lazy descr) = descr in
+  let descr : string = Lazy.force descr in
   Printf.sprintf
     "File %S, line %d, characters %d-%d%s"
     filename
@@ -247,13 +248,12 @@ let parse_argv ?current args =
     :: lib
     :: rest ->
     (* initialization should only occur once *)
-    if !already_initialized
+    if Atomic.exchange already_initialized true
     then
       raise
         (Arg.Bad
            "The inline test runner can only be initialized once, and has already been \
             initialized.");
-    already_initialized := true;
     let tests = ref [] in
     let list_partitions = (ref None : Where_to_list.t option ref) in
     let partition = ref None in
@@ -266,8 +266,8 @@ let parse_argv ?current args =
          [ ( "-list-test-names"
            , Arg.Unit
                (fun () ->
-                 list_test_names := true;
-                 verbose_output_channel := Some stdout)
+                 Atomic.set list_test_names true;
+                 Atomic.set verbose_output_channel (Some stdout))
            , " Do not run tests but show what would have been run" )
          ; ( "-list-partitions"
            , Arg.Unit (fun () -> list_partitions := Some Stdout)
@@ -280,22 +280,26 @@ let parse_argv ?current args =
            , Arg.String (fun i -> partition := Some i)
            , " Only run the tests in the given partition" )
          ; ( "-verbose"
-           , Arg.Unit (fun () -> verbose_output_channel := Some stdout)
+           , Arg.Unit (fun () -> Atomic.set verbose_output_channel (Some stdout))
            , " Show the tests as they run" )
          ; ( "-verbose-to-stderr"
-           , Arg.Unit (fun () -> verbose_output_channel := Some stderr)
+           , Arg.Unit (fun () -> Atomic.set verbose_output_channel (Some stderr))
            , " Show the tests on stderr as they run" )
          ; ( "-stop-on-error"
-           , Arg.Set stop_on_error
+           , Arg.Unit (fun () -> Atomic.set stop_on_error true)
            , " Run tests only up to the first error (doesn't work for expect tests)" )
-         ; "-strict", Arg.Set strict, " End with an error if no tests were run"
-         ; "-show-counts", Arg.Set show_counts, " Show the number of tests ran"
+         ; ( "-strict"
+           , Arg.Unit (fun () -> Atomic.set strict true)
+           , " End with an error if no tests were run" )
+         ; ( "-show-counts"
+           , Arg.Unit (fun () -> Atomic.set show_counts true)
+           , " Show the number of tests ran" )
          ; ( "-log"
            , Arg.Unit
                (fun () ->
                  (try Sys.remove "inline_tests.log" with
                   | _ -> ());
-                 log := Some (open_out "inline_tests.log"))
+                 Atomic.set log (Some (open_out "inline_tests.log")))
            , " Log the tests run in inline_tests.log" )
          ; ( "-drop-tag"
            , Arg.String (fun s -> tag_predicate := Tag_predicate.drop !tag_predicate s)
@@ -343,16 +347,20 @@ let parse_argv ?current args =
              \                      - File \"file.ml\"\n\
              \                      - File \"file.ml\", line 23\n\
              \                      - File \"file.ml\", line 23, characters 2-3" )
-         ; "-no-color", Arg.Clear use_color, " Summarize tests without using color"
-         ; "-in-place", Arg.Set in_place, " Update expect tests in place"
+         ; ( "-no-color"
+           , Arg.Unit (fun () -> Atomic.set use_color false)
+           , " Summarize tests without using color" )
+         ; ( "-in-place"
+           , Arg.Unit (fun () -> Atomic.set in_place true)
+           , " Update expect tests in place" )
          ; ( "-diff-cmd"
-           , Arg.String (fun s -> diff_command := Some s)
+           , Arg.String (fun s -> Atomic.set diff_command (Some s))
            , " Diff command for tests that require diffing (use - to disable diffing)" )
          ; ( "-source-tree-root"
-           , Arg.String (fun s -> source_tree_root := Some s)
+           , Arg.String (fun s -> Atomic.set source_tree_root (Some s))
            , " Path to the root of the source tree" )
          ; ( "-diff-path-prefix"
-           , Arg.String (fun s -> diff_path_prefix := Some s)
+           , Arg.String (fun s -> Atomic.set diff_path_prefix (Some s))
            , " Prefix to prepend to filepaths in test output" )
          ])
       (fun anon ->
@@ -459,18 +467,36 @@ let time_without_resetting_random_seeds f =
     try Ok (f ()) with
     | exn -> Error (exn, Printexc.get_backtrace ())
   in
-  time_sec := Base.Int63.(timestamp_ns () - before_ns |> to_float) /. 1e9;
-  res
+  let time_sec = Base.Int63.(timestamp_ns () - before_ns |> to_float) /. 1e9 in
+  res, time_sec
 ;;
 
-let saved_caml_random_state = lazy (Stdlib.Random.State.make [| 100; 200; 300 |])
-let saved_base_random_state = lazy (Base.Random.State.make [| 111; 222; 333 |])
+(* If we wanted to be precise with modes, we would wrap each of these states in a
+   [Basement.Capsule.Data.t] with an aliased [Basement.Capsule.Key.t] to allow global
+   shared access to them. We need to use mode magic below anyways, though, so we avoid
+   the redundant complexity. *)
+
+let saved_caml_random_state =
+  Base.Portable_lazy.from_fun (fun () -> Stdlib.Random.State.make [| 100; 200; 300 |])
+;;
+
+let saved_base_random_state =
+  Base.Portable_lazy.from_fun (fun () -> Base.Random.State.make [| 111; 222; 333 |])
+;;
 
 let time_and_reset_random_seeds f =
   let caml_random_state = Stdlib.Random.get_state () in
   let base_random_state = Base.Random.State.copy Base.Random.State.default in
-  Stdlib.Random.set_state (Lazy.force saved_caml_random_state);
-  Base.Random.set_state (Lazy.force saved_base_random_state);
+  Stdlib.Random.set_state
+    (Base.Portable_lazy.force saved_caml_random_state
+     (* SAFETY: [set_state] only reads its argument; it'd be nice to use shared but stdlib
+        doesn't yet. *)
+     |> Basement.Stdlib_shim.Obj.magic_uncontended);
+  Base.Random.set_state
+    (Base.Portable_lazy.force saved_base_random_state
+     (* SAFETY: [set_state] only reads its argument; it'd be nice to use shared but Base
+        doesn't yet. *)
+     |> Basement.Stdlib_shim.Obj.magic_uncontended);
   let result = time_without_resetting_random_seeds f in
   Stdlib.Random.set_state caml_random_state;
   Base.Random.set_state base_random_state;
@@ -525,10 +551,10 @@ let print_delayed_errors () =
 let eprintf_or_delay fmt =
   Printf.ksprintf
     (fun s ->
-      (match !verbose_output_channel with
+      (match Atomic.get verbose_output_channel with
        | Some _ -> delayed_errors := s :: !delayed_errors
        | None -> Printf.eprintf "%s%!" s);
-      if !stop_on_error
+      if Atomic.get stop_on_error
       then (
         print_delayed_errors ();
         exit 2))
@@ -589,18 +615,19 @@ let[@inline never] test_inner
         then (
           let descr = Lazy.force descr in
           incr tests_ran;
-          opt_printf !log "%s\n%s" descr (string_of_module_descr ());
-          opt_printf !verbose_output_channel "%s%!" descr;
-          let result =
-            if !list_test_names
-            then Ok true
-            else
+          opt_printf (Atomic.get log) "%s\n%s" descr (string_of_module_descr ());
+          opt_printf (Atomic.get verbose_output_channel) "%s%!" descr;
+          let result, time_sec =
+            if Atomic.get list_test_names
+            then Ok true, 0.0
+            else (
               (* See [time_without_resetting_random_seeds] for why we use [bool_of_f]
                  rather have the caller wrap [f] to adjust its return value. *)
-              Result.map bool_of_f (time_and_reset_random_seeds f)
+              let res, time_sec = time_and_reset_random_seeds f in
+              Result.map bool_of_f res, time_sec)
           in
-          (* If !list_test_names, this is is a harmless zero. *)
-          opt_printf !verbose_output_channel " (%.3f sec)\n%!" !time_sec;
+          (* If Atomic.get list_test_names, this is is a harmless zero. *)
+          opt_printf (Atomic.get verbose_output_channel) " (%.3f sec)\n%!" time_sec;
           match result with
           | Ok true -> ()
           | Ok false ->
@@ -720,8 +747,8 @@ let[@inline never] test_module
               *)
               time_without_resetting_random_seeds f)
           with
-          | Ok () -> ()
-          | Error (exn, backtrace) ->
+          | Ok (), _ -> ()
+          | Error (exn, backtrace), _ ->
             incr test_modules_failed;
             let backtrace = hum_backtrace backtrace in
             let exn_str = Sexplib0.Sexp_conv.printexc_prefer_sexp exn in
@@ -764,13 +791,13 @@ let summarize () =
       List.iter (Printf.fprintf fout "%s\n") (Partition.all ()));
     Test_result.Success
   | `Test_mode { what_to_do = `Run_partition _; which_tests } ->
-    (match !log with
+    (match Atomic.get log with
      | None -> ()
      | Some ch -> close_out ch);
     print_delayed_errors ();
     (match !tests_failed, !test_modules_failed with
      | 0, 0 ->
-       if !show_counts
+       if Atomic.get show_counts
        then
          Printf.eprintf
            "%d tests ran, %d test_modules ran\n%!"
@@ -797,7 +824,7 @@ let summarize () =
           Printf.eprintf ".\n%!";
           Test_result.Error
         | None ->
-          if !tests_ran = 0 && !strict
+          if !tests_ran = 0 && Atomic.get strict
           then (
             Printf.eprintf "ppx_inline_test error: no tests have been run.\n%!";
             Test_result.Error)
@@ -814,7 +841,7 @@ let summarize () =
 ;;
 
 let assert_test_configs_initialized config =
-  if not !already_initialized
+  if not (Atomic.get already_initialized)
   then
     Printf.sprintf
       "ppx_inline_test error: attempted to access the [%s] config before [init] was \
@@ -825,32 +852,32 @@ let assert_test_configs_initialized config =
 
 let verbose () =
   assert_test_configs_initialized "verbose";
-  Option.is_some !verbose_output_channel
+  Option.is_some (Atomic.get verbose_output_channel)
 ;;
 
 let use_color () =
   assert_test_configs_initialized "use_color";
-  !use_color
+  Atomic.get use_color
 ;;
 
 let in_place () =
   assert_test_configs_initialized "in_place";
-  !in_place
+  Atomic.get in_place
 ;;
 
 let diff_command () =
   assert_test_configs_initialized "diff_command";
-  !diff_command
+  Atomic.get diff_command
 ;;
 
 let diff_path_prefix () =
   assert_test_configs_initialized "diff_path_prefix";
-  !diff_path_prefix
+  Atomic.get diff_path_prefix
 ;;
 
 let source_tree_root () =
   assert_test_configs_initialized "source_tree_root";
-  !source_tree_root
+  Atomic.get source_tree_root
 ;;
 
 let evaluators = ref [ summarize ]

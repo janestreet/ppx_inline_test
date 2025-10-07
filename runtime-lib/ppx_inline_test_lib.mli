@@ -1,3 +1,5 @@
+@@ portable
+
 (** [am_running] is [true] if the code is running inline tests (e.g. [let%expect_test],
     [let%test], [let%test_unit]) or is in an executable invoked from inline tests. *)
 val am_running : bool
@@ -18,7 +20,7 @@ val testing
     error in the arguments, and will return Some string if help was requested. It will
     also return an error if the test runner has already initialized, either by reading
     command-line arguments or by a previous call to [init]. *)
-val init : string list -> (string option, string) result
+val init : string list -> (string option, string) result @@ nonportable
 
 (**/**)
 
@@ -47,11 +49,11 @@ type 'a test_function_args =
   -> end_pos:int
   -> 'a
 
-val set_lib_and_partition : string -> string -> unit
-val unset_lib : string -> unit
-val test : ((unit -> bool) -> unit) test_function_args
-val test_unit : ((unit -> unit) -> unit) test_function_args
-val test_module : ((unit -> unit) -> unit) test_function_args
+val set_lib_and_partition : string -> string -> unit @@ nonportable
+val unset_lib : string -> unit @@ nonportable
+val test : ((unit -> bool) -> unit) test_function_args @@ nonportable
+val test_unit : ((unit -> unit) -> unit) test_function_args @@ nonportable
+val test_module : ((unit -> unit) -> unit) test_function_args @@ nonportable
 val verbose : unit -> bool
 val use_color : unit -> bool
 val in_place : unit -> bool
@@ -73,10 +75,10 @@ val source_tree_root : unit -> string option
 val force_drop : bool
 
 (** Record an evaluator for an external set of tests *)
-val add_evaluator : f:(unit -> Test_result.t) -> unit
+val add_evaluator : f:(unit -> Test_result.t) -> unit @@ nonportable
 
 (** Exit with a status based on the combined result of all recorded evaluators *)
-val exit : unit -> _
+val exit : unit -> _ @@ nonportable
 
 (** Like [exit], but just return the exit status that would have been used *)
-val evaluate_exit_status : unit -> int
+val evaluate_exit_status : unit -> int @@ nonportable
