@@ -6,7 +6,7 @@
    (cookies
     (inline_tests %{inline_tests}))))
  (ppx_runtime_libraries ppx_inline_test.config ppx_inline_test.runtime-lib)
- (libraries base ppxlib ppxlib_jane ppx_inline_test_libname)
+ (libraries base ppx_inline_test_libname ppxlib ppxlib_jane)
  (preprocess
   (pps ppxlib.metaquot))
  (inline_tests.backend
