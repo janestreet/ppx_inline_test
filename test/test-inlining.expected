@@ -12,17 +12,17 @@ File "performance_test.ml", line 13, characters 2-22: ok (XXX sec)
 File "performance_test.ml", line 14, characters 2-25: fail (XXX sec)
 
 ======================================================================
-TEST_MODULE at file "failures.ml", line 12, characters 2-70: name3 threw Exit.
-  in TEST_MODULE at file "failures.ml", line 7, characters 0-170: Name2
+TEST_MODULE at file "failures.ml", line 11, characters 2-70: name3 threw Exit.
+  in TEST_MODULE at file "failures.ml", line 6, characters 0-170: Name2
 
-TEST_MODULE at file "failures.ml", line 17, characters 0-48 threw Exit.
+TEST_MODULE at file "failures.ml", line 16, characters 0-48 threw Exit.
 
 File "performance_test.ml", line 5, characters 0-75: alloc-test-fail is false.
 
 File "performance_test.ml", line 14, characters 2-25: fail is false.
   in TEST_MODULE at file "performance_test.ml", line 12, characters 0-142: alloc-test-module
 
-TEST_MODULE at file "performance_test.ml", line 17, characters 0-238: early-cutoff-module threw "Assert_failure performance_test.ml:21:11".
+TEST_MODULE at file "performance_test.ml", line 17, characters 0-236: early-cutoff-module threw "Assert_failure performance_test.ml:21:11".
 
 FAILED 2 / 5 tests, 3 TEST_MODULES
 code: 2

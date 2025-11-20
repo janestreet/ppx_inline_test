@@ -1,5 +1,4 @@
-(* checking that the execution order is right (and that
-   tests do run) *)
+(* checking that the execution order is right (and that tests do run) *)
 
 let count = ref 0
 

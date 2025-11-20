@@ -1,5 +1,4 @@
-(* Checking failures are reported properly, and make the overall
-   test fail. *)
+(* Checking failures are reported properly, and make the overall test fail. *)
 
 let%test _ = false
 let%test "name1" = raise Exit

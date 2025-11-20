@@ -2,10 +2,10 @@ open Base
 open Ppxlib
 open Ast_builder.Default
 
-(* Generated code should depend on the environment in scope as little as
-   possible.  E.g. rather than [foo = []] do [match foo with [] ->], to eliminate the
-   use of [=].  It is especially important to not use polymorphic comparisons, since we
-   are moving more and more to code that doesn't have them in scope. *)
+(* Generated code should depend on the environment in scope as little as possible. E.g.
+   rather than [foo = []] do [match foo with [] ->], to eliminate the use of [=]. It is
+   especially important to not use polymorphic comparisons, since we are moving more and
+   more to code that doesn't have them in scope. *)
 
 type maybe_drop =
   | Keep
