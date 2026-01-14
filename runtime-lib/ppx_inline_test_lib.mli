@@ -4,12 +4,18 @@
     [let%test], [let%test_unit]) or is in an executable invoked from inline tests. *)
 val am_running : bool
 
+(** [am_test_runner] is [true] if the code is running inline tests (e.g.
+    [let%expect_test], [let%test], [let%test_unit]); unlike [am_running], this is [false]
+    for an executable invoked from inline tests. *)
+val am_test_runner : unit -> bool
+
 val am_running_env_var : string
 
 (** [`Am_test_runner] means the [./inline_tests_runner] process, whereas
     [`Am_child_of_test_runner] means a process descended from the test runner. *)
 val testing
-  : [ `Not_testing | `Testing of [ `Am_test_runner | `Am_child_of_test_runner ] ]
+  :  unit
+  -> [ `Not_testing | `Testing of [ `Am_test_runner | `Am_child_of_test_runner ] ]
 
 (** The tests to run are configured by command line arguments, normally pulled from
     [Sys.argv]. Calling [init] will re-configure the test runner using the passed-in

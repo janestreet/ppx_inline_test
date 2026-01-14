@@ -17,6 +17,14 @@ val validate_extension_point_exn
   -> unit
 
 val maybe_drop : Location.t -> Parsetree.expression -> Parsetree.structure
+val if_am_test_runner : Location.t -> Parsetree.expression -> Parsetree.expression
+
+(** Should be put around top-level effects that are used for testing only, but shouldn't
+    be run otherwise. This tends to occur in ppx headers and footers. *)
+val guard_toplevel_test_effects
+  :  Location.t
+  -> Parsetree.expression
+  -> Parsetree.structure
 
 (**/**)
 

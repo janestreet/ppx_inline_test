@@ -81,6 +81,12 @@ let maybe_drop loc code =
     [%str]
 ;;
 
+let if_am_test_runner loc expr =
+  [%expr if Ppx_inline_test_lib.am_test_runner () then [%e expr]]
+;;
+
+let guard_toplevel_test_effects loc expr = maybe_drop loc (if_am_test_runner loc expr)
+
 let rec short_desc_of_expr ~max_len e =
   match Ppxlib_jane.Shim.Expression_desc.of_parsetree e.pexp_desc ~loc:e.pexp_loc with
   | Pexp_let (_, _, _, e) | Pexp_letmodule (_, _, e) -> short_desc_of_expr ~max_len e
@@ -184,10 +190,13 @@ let validate_extension_point_exn ~name_of_ppx_rewriter ~loc ~tags =
   then
     Location.raise_errorf
       ~loc
-      "%s: extension is disabled because the tests would be ignored (the build system \
-       didn't pass -inline-test-lib. With jenga or dune, this usually happens when \
-       writing tests in files that are part of an executable stanza, but only library \
-       stanzas support inline tests)"
+      "%s: extension is disabled because the tests would be ignored.\n\
+       (The build system didn't pass -inline-test-lib. With Dune, this usually happens \
+       for one of two reasons:\n\
+       (1) Tests were written in files that are part of an executables stanza, but only \
+       library stanzas support inline tests.\n\
+       (2) Tests were written in a parametrized library, but no [instantiate_parameters] \
+       was given in the [inline_tests] clause.)"
       name_of_ppx_rewriter;
   List.iter tags ~f:(fun tag ->
     match validate_tag tag with

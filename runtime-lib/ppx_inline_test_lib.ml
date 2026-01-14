@@ -91,7 +91,7 @@ end
 
 type which_tests =
   { libname : string
-  ; only_test_location : (filename * line_number option * bool ref) list
+  ; only_test_location : (filename * line_number option * bool Atomic.t) list
   ; name_filter : string list
   ; which_tags : Tag_predicate.t
   }
@@ -109,7 +109,7 @@ let force_drop =
   | Not_found -> false
 ;;
 
-module Action : sig
+module Action : sig @@ portable
   type t =
     [ `Ignore
     | `Test_mode of test_mode
@@ -123,17 +123,17 @@ end = struct
     | `Test_mode of test_mode
     ]
 
-  let action : t ref = ref `Ignore
+  let action : t Atomic.t = Atomic.make `Ignore
 
   let get () =
     (* This is useful when compiling to javascript. Js_of_ocaml can statically evaluate
        [Sys.getenv "FORCE_DROP_INLINE_TEST"] and inline the result ([`Ignore]) whenever
        [get ()] is called. Unit tests can then be treated as deadcode since the argument
        [f] of the [test] function below is never used. *)
-    if force_drop then `Ignore else !action
+    if force_drop then `Ignore else Atomic.get action
   ;;
 
-  let set v = action := v
+  let set v = Atomic.set action v
 end
 
 module Partition : sig
@@ -338,7 +338,7 @@ let parse_argv ?current args =
                        filename, Some index)
                      else s, None
                  in
-                 tests := (filename, index, ref false) :: !tests)
+                 tests := (filename, index, Atomic.make false) :: !tests)
            , "location Run only the tests specified by all the -only-test options.\n\
              \                      Locations can be one of these forms:\n\
              \                      - file.ml\n\
@@ -404,7 +404,7 @@ let init args =
   | Arg.Help msg -> Ok (Some msg)
 ;;
 
-let am_test_runner =
+let am_test_runner () =
   match Action.get () with
   | `Test_mode _ -> true
   | `Ignore -> false
@@ -429,8 +429,8 @@ let am_running =
      | _ -> false)
 ;;
 
-let testing =
-  if am_test_runner
+let testing () =
+  if am_test_runner ()
   then `Testing `Am_test_runner
   else if am_running
   then `Testing `Am_child_of_test_runner
@@ -527,7 +527,7 @@ let position_match def_filename def_line_number l =
         | None -> true
         | Some line_number -> def_line_number = line_number
       in
-      if found then used := true;
+      if found then Atomic.set used true;
       found)
     l
 ;;
@@ -802,7 +802,9 @@ let summarize () =
            !test_modules_ran;
        let errors =
          let unused_tests =
-           List.filter (fun (_, _, used) -> not !used) which_tests.only_test_location
+           List.filter
+             (fun (_, _, used) -> not (Atomic.get used))
+             which_tests.only_test_location
          in
          match unused_tests with
          | [] -> None
