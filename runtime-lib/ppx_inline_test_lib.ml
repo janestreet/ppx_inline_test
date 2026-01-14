@@ -91,7 +91,7 @@ end
 
 type which_tests =
   { libname : string
-  ; only_test_location : (filename * line_number option * bool ref) list
+  ; only_test_location : (filename * line_number option * bool Atomic.t) list
   ; name_filter : string list
   ; which_tags : Tag_predicate.t
   }
@@ -123,18 +123,17 @@ end = struct
     | `Test_mode of test_mode
     ]
 
-  let action : t ref = ref `Ignore
+  let action : t Atomic.t = Atomic.make `Ignore
 
   let get () =
-    (* This is useful when compiling to javascript.
-       Js_of_ocaml can statically evaluate [Sys.getenv "FORCE_DROP_INLINE_TEST"]
-       and inline the result ([`Ignore]) whenever [get ()] is called.
-       Unit tests can then be treated as deadcode since the argument [f] of the [test]
-       function below is never used. *)
-    if force_drop then `Ignore else !action
+    (* This is useful when compiling to javascript. Js_of_ocaml can statically evaluate
+       [Sys.getenv "FORCE_DROP_INLINE_TEST"] and inline the result ([`Ignore]) whenever
+       [get ()] is called. Unit tests can then be treated as deadcode since the argument
+       [f] of the [test] function below is never used. *)
+    if force_drop then `Ignore else Atomic.get action
   ;;
 
-  let set v = action := v
+  let set v = Atomic.set action v
 end
 
 module Partition : sig
@@ -339,7 +338,7 @@ let parse_argv ?current args =
                        filename, Some index)
                      else s, None
                  in
-                 tests := (filename, index, ref false) :: !tests)
+                 tests := (filename, index, Atomic.make false) :: !tests)
            , "location Run only the tests specified by all the -only-test options.\n\
              \                      Locations can be one of these forms:\n\
              \                      - file.ml\n\
@@ -405,20 +404,20 @@ let init args =
   | Arg.Help msg -> Ok (Some msg)
 ;;
 
-let am_test_runner =
+let am_test_runner () =
   match Action.get () with
   | `Test_mode _ -> true
   | `Ignore -> false
 ;;
 
 let am_running_env_var =
-  (* for approximate compatibility, given that the variable is not exactly equivalent
-     to what PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST used to be *)
+  (* for approximate compatibility, given that the variable is not exactly equivalent to
+     what PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST used to be *)
   "TESTING_FRAMEWORK"
 ;;
 
-(* This value is deprecated in principle, in favor of Core.am_running_test, so
-   we're going to live with the ugly pattern match. *)
+(* This value is deprecated in principle, in favor of Core.am_running_test, so we're going
+   to live with the ugly pattern match. *)
 let am_running =
   match Sys.getenv "PPX_INLINE_TEST_LIB_AM_RUNNING_INLINE_TEST" with
   | (_ : string) ->
@@ -430,19 +429,19 @@ let am_running =
      | _ -> false)
 ;;
 
-let testing =
-  if am_test_runner
+let testing () =
+  if am_test_runner ()
   then `Testing `Am_test_runner
   else if am_running
   then `Testing `Am_child_of_test_runner
   else `Not_testing
 ;;
 
-(* This function returns an int63 representing the number of nanos since
-   some (fixed) baseline.  On unix, this baseline will be the unix epoch,
-   and in javascript, the baseline will be "program initialization time."
-   Regardless, it's always safe to subtract two values and use the diff,
-   which is all that ppx_inline_test_lib uses it for. *)
+(* This function returns an int63 representing the number of nanos since some (fixed)
+   baseline. On unix, this baseline will be the unix epoch, and in javascript, the
+   baseline will be "program initialization time." Regardless, it's always safe to
+   subtract two values and use the diff, which is all that ppx_inline_test_lib uses it
+   for. *)
 let timestamp_ns () = Time_now.nanosecond_counter_for_timing ()
 
 let where_to_cut_backtrace =
@@ -473,8 +472,8 @@ let time_without_resetting_random_seeds f =
 
 (* If we wanted to be precise with modes, we would wrap each of these states in a
    [Basement.Capsule.Data.t] with an aliased [Basement.Capsule.Key.t] to allow global
-   shared access to them. We need to use mode magic below anyways, though, so we avoid
-   the redundant complexity. *)
+   shared access to them. We need to use mode magic below anyways, though, so we avoid the
+   redundant complexity. *)
 
 let saved_caml_random_state =
   Base.Portable_lazy.from_fun (fun () -> Stdlib.Random.State.make [| 100; 200; 300 |])
@@ -528,7 +527,7 @@ let position_match def_filename def_line_number l =
         | None -> true
         | Some line_number -> def_line_number = line_number
       in
-      if found then used := true;
+      if found then Atomic.set used true;
       found)
     l
 ;;
@@ -715,13 +714,11 @@ let[@inline never] test_module
     let should_run =
       Some libname = !dynamic_lib
       (* If, no matter what tags a test defines, we certainly will drop all tests within
-         this module, then don't run the module at all. This means people can write
-         things like the following without breaking the 32-bit build:
-         module%test [@tags "64-bits-only"] _ = struct
-           let i = Int64.to_int_exn ....
-         end
-         We don't shortcut based on position, as we can't tell what positions the
-         inner tests will have. *)
+         this module, then don't run the module at all. This means people can write things
+         like the following without breaking the 32-bit build: module%test
+         [@tags "64-bits-only"] _ = struct let i = Int64.to_int_exn .... end We don't
+         shortcut based on position, as we can't tell what positions the inner tests will
+         have. *)
       && not (Tag_predicate.entire_module_disabled which_tags ~partial_tags)
     in
     if should_run
@@ -740,10 +737,10 @@ let[@inline never] test_module
                  Con: Code in test modules can accidentally depend on top-level random
                  state effects.
 
-                 Pros: (1) We don't reset to the same seed on entering a [module%test]
-                 and then a [let%test] inside that module, which could lead to
-                 accidentally randomly generating the same values in some test. (2) Moving
-                 code into and out of [module%test] does not change its random seed.
+                 Pros: (1) We don't reset to the same seed on entering a [module%test] and
+                 then a [let%test] inside that module, which could lead to accidentally
+                 randomly generating the same values in some test. (2) Moving code into
+                 and out of [module%test] does not change its random seed.
               *)
               time_without_resetting_random_seeds f)
           with
@@ -805,7 +802,9 @@ let summarize () =
            !test_modules_ran;
        let errors =
          let unused_tests =
-           List.filter (fun (_, _, used) -> not !used) which_tests.only_test_location
+           List.filter
+             (fun (_, _, used) -> not (Atomic.get used))
+             which_tests.only_test_location
          in
          match unused_tests with
          | [] -> None

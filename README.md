@@ -166,7 +166,7 @@ before the binary starts doing non-test side effects. However be aware that
 `Base.am_testing` will be `true` even when not running tests, which may be undesirable.
 
 ```ocaml
-match Ppx_inline_test_lib.testing with
+match Ppx_inline_test_lib.testing () with
 | `Testing `Am_test_runner ->
   print_endline "Exiting test suite";
   Ppx_inline_test_lib.exit ()
