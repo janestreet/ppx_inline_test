@@ -175,6 +175,8 @@ let all_tags =
   ; "disabled"
   ; "runtime5-only"
   ; "runtime4-only"
+  ; "x86-only"
+  ; "arm-only"
   ]
 ;;
 
